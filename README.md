@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ham-webapp
 
-## Getting Started
+**Status:** Phases **W0–W11** complete (release-candidate scaffolding)  
+**Stack:** Next.js 16.3.2 · React 19 · TypeScript · Tailwind 4 · next-intl · TanStack Query · BFF cookies
 
-First, run the development server:
+One Next.js app for HAM (Tamil Nadu Job & Worker Welfare). Talks to **ham-backend** only via same-origin BFF (`/api/auth/*`, `/api/proxy/*`). Tokens stay HttpOnly — never in `localStorage`.
+
+## Run locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Terminal A — Nest (see ham-backend README)
+# port 3000; mock OTP → Nest warn banner + ham-backend/logs/mock-otp.log
+
+# Terminal B — Web
+cd ham-webapp
+cp .env.example .env.local   # if needed
+npm install
+npm run dev                  # http://localhost:3001  →  /ta
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Env | Purpose |
+| --- | --- |
+| `HAM_API_BASE_URL` | Server-only Nest base, default `http://localhost:3000/api/v1` |
+| `NEXT_PUBLIC_APP_URL` | Public origin for CSRF allowlist, default `http://localhost:3001` |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Script | Purpose |
+| --- | --- |
+| `npm run dev` | Dev on **3001** |
+| `npm run build` / `start` | Production |
+| `npm run lint` / `typecheck` / `test` | Quality gates |
+| `npm run format` | Prettier |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Auth smoke
 
-## Learn More
+1. Register at `/ta/register` (E.164 phone)
+2. Copy OTP from Nest terminal (`MOCK OTP` banner) or `ham-backend/logs/mock-otp.log`
+3. Verify OTP → role home
+4. Wrong role path → `/forbidden`
 
-To learn more about Next.js, take a look at the following resources:
+## Docs
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Doc | Topic |
+| --- | --- |
+| [docs/README.md](docs/README.md) | Planning index |
+| [docs/WEB_IMPLEMENTATION_CHECKLIST.md](docs/WEB_IMPLEMENTATION_CHECKLIST.md) | W0–W11 tasks |
+| [docs/WEB_SECURITY_HARDENING.md](docs/WEB_SECURITY_HARDENING.md) | Headers, CSRF, cookies |
+| [docs/WEB_E2E.md](docs/WEB_E2E.md) | Manual / Playwright smoke |
+| [docs/WEB_RELEASE_CHECKLIST.md](docs/WEB_RELEASE_CHECKLIST.md) | Prod env + honest gaps |
+| [docs/WEB_DEPENDENCY_AUDIT.md](docs/WEB_DEPENDENCY_AUDIT.md) | `npm audit` notes |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Honest Nest gaps (do not fake)
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Welfare detail HTTP → Coming soon
+- Membership withdraw → `NOT_ENABLED`
+- Payments may be `NOT_ENABLED` (does **not** gate job posting)
+- Legal = provider directory (no employee case API)
+- Mock KYC complete only when Nest allows (non-prod)
