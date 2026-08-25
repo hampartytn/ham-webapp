@@ -598,7 +598,9 @@
 .ham-auth--designer .ham-auth-phone-floating__input:focus,
 .ham-auth--designer .ham-auth-phone-floating__input:focus-visible,
 .ham-auth--designer .ham-auth-password-designer__input:focus,
-.ham-auth--designer .ham-auth-password-designer__input:focus-visible {
+.ham-auth--designer .ham-auth-password-designer__input:focus-visible,
+.ham-auth--designer .ham-auth-otp-input:focus,
+.ham-auth--designer .ham-auth-otp-input:focus-visible {
   outline: none !important;
   box-shadow: none !important;
 }
