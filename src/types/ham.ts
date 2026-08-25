@@ -136,7 +136,7 @@ export type ApplicantItem = {
     districtId: string | null;
     availabilityStatus: string | null;
     availableFrom: string | null;
-    skills: { skillId: string; code: string; name: string }[];
+    skills: { skillId: string; code: string; name: string; yearsExperience?: number | null }[];
   };
 };
 

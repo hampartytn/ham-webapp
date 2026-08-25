@@ -1,5 +1,5 @@
-import { EmployerDashboard } from "@/features/employer/employer-core";
+import { EmployerDashboard } from "@/features/employer";
 
-export default function Page() {
+export default function EmployerHomePage() {
   return <EmployerDashboard />;
 }

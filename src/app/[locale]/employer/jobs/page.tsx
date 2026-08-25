@@ -1,5 +1,5 @@
-import { EmployerJobsList } from "@/features/employer/employer-jobs";
+import { EmployerJobsList } from "@/features/employer";
 
-export default function Page() {
+export default function EmployerJobsPage() {
   return <EmployerJobsList />;
 }

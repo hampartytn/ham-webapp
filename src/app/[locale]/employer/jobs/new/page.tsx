@@ -1,5 +1,5 @@
-import { EmployerJobCreateForm } from "@/features/employer/employer-jobs";
+import { EmployerJobForm } from "@/features/employer";
 
-export default function Page() {
-  return <EmployerJobCreateForm />;
+export default function EmployerNewJobPage() {
+  return <EmployerJobForm mode="create" />;
 }

@@ -1,5 +1,5 @@
-import { EmployerOrganizationForm } from "@/features/employer/employer-core";
+import { EmployerOrganizationForm } from "@/features/employer";
 
-export default function Page() {
+export default function EmployerOrganizationPage() {
   return <EmployerOrganizationForm />;
 }

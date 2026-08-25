@@ -1,5 +1,5 @@
-import { EmployerSettingsPanel } from "@/features/employer/employer-jobs";
+import { EmployerSettingsPanel } from "@/features/employer";
 
-export default function Page() {
+export default function EmployerSettingsPage() {
   return <EmployerSettingsPanel />;
 }
