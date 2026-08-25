@@ -1,6 +1,9 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
-import { PublicHeader } from "@/components/layout/public-header";
+import {
+  AuthFormIntro,
+  AuthPageLayout,
+} from "@/components/layout/auth-shell";
 import { RegisterForm } from "@/features/auth/components/register-form";
 import { Link } from "@/i18n/navigation";
 
@@ -12,18 +15,29 @@ export default async function RegisterPage({ params }: Props) {
   const t = await getTranslations("auth");
 
   return (
-    <>
-      <PublicHeader />
-      <main className="mx-auto w-full max-w-md space-y-6 px-6 py-12">
-        <h1 className="text-2xl font-semibold">{t("registerTitle")}</h1>
-        <RegisterForm />
-        <p className="text-sm">
+    <AuthPageLayout
+      mode="register"
+      footer={
+        <p>
           {t("alreadyHaveAccount")}{" "}
-          <Link href="/login" className="underline">
+          <Link
+            href="/login"
+            className="font-bold underline transition-colors hover:text-white/80"
+          >
             {t("loginTitle")}
           </Link>
         </p>
-      </main>
-    </>
+      }
+    >
+      <AuthFormIntro
+        align="center"
+        noticeVariant="info"
+        eyebrow={t("registerEyebrow")}
+        title={t("registerTitle")}
+        support={t("registerSupportShort")}
+        notice={t("registerHint")}
+      />
+      <RegisterForm />
+    </AuthPageLayout>
   );
 }

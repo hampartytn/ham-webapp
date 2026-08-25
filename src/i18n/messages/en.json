@@ -24,33 +24,187 @@
     "register": "Create account",
     "login": "Log in",
     "welfare": "Welfare schemes",
-    "chooseLanguage": "Choose language"
+    "chooseLanguage": "Choose language",
+    "ctaPrimary": "Get started",
+    "ctaSecondary": "Log in",
+    "nav": {
+      "label": "Main navigation",
+      "roles": "Who it's for",
+      "how": "How it works",
+      "welfare": "Welfare",
+      "openMenu": "Open menu",
+      "closeMenu": "Close menu",
+      "goToApp": "Go to dashboard"
+    },
+    "hero": {
+      "headline": "Work and support made clearer for Tamil Nadu.",
+      "support": "HAM helps workers find opportunities and employers connect with people — in Tamil, English, or Hindi."
+    },
+    "roles": {
+      "eyebrow": "Choose your path",
+      "title": "Start where you belong",
+      "description": "Pick the journey that matches you. You choose your role when you create an account.",
+      "worker": {
+        "title": "For workers",
+        "body": "Look for suitable jobs, keep your skills up to date, and track applications in one place.",
+        "point1": "Browse jobs after you sign in",
+        "point2": "Build a simple profile with your skills",
+        "point3": "Apply and follow your applications",
+        "cta": "Join as a worker"
+      },
+      "employer": {
+        "title": "For employers",
+        "body": "Set up your organization, post roles, and review applicants with privacy in mind.",
+        "point1": "Create and publish job openings",
+        "point2": "Review applicants without exposing private details",
+        "point3": "Manage your posted jobs in one place",
+        "cta": "Join as an employer"
+      }
+    },
+    "benefits": {
+      "eyebrow": "What you can do",
+      "title": "Practical tools for work and support",
+      "description": "These features are available in HAM today. Welfare scheme pages are marked honestly when not ready yet.",
+      "items": {
+        "jobs": {
+          "title": "Job opportunities",
+          "body": "Workers can discover openings that match their skills after signing in."
+        },
+        "apply": {
+          "title": "Simple applications",
+          "body": "Apply in a few steps and track status without complicated forms."
+        },
+        "profile": {
+          "title": "Skills and profile",
+          "body": "Share the work you can do so the right opportunities are easier to find."
+        },
+        "employers": {
+          "title": "Employer connections",
+          "body": "Employers post roles and connect with workers through clear job listings."
+        },
+        "legal": {
+          "title": "Legal support directory",
+          "body": "Browse approved legal support providers near you. Case filing is not available yet."
+        },
+        "welfare": {
+          "title": "Worker welfare",
+          "body": "Welfare scheme detail pages are not available from the API yet."
+        }
+      }
+    },
+    "how": {
+      "eyebrow": "For workers",
+      "title": "How HAM works",
+      "description": "Three clear steps. No jargon — just what to do next.",
+      "steps": {
+        "one": {
+          "title": "Create your account",
+          "body": "Register with your phone, verify with OTP, and set your role."
+        },
+        "two": {
+          "title": "Complete your profile",
+          "body": "Add your details and skills so matching jobs are easier to spot."
+        },
+        "three": {
+          "title": "Apply and track",
+          "body": "Apply to openings and follow progress from your applications list."
+        }
+      }
+    },
+    "trust": {
+      "eyebrow": "Built carefully",
+      "title": "A calmer way to look for work",
+      "description": "HAM is designed to be clear, private where it matters, and usable in the languages people actually speak.",
+      "items": {
+        "privacy": {
+          "title": "Privacy-conscious screens",
+          "body": "Sensitive personal details stay protected in employer and admin views."
+        },
+        "clarity": {
+          "title": "Clear next steps",
+          "body": "Actions stay direct — register, verify, apply — without clutter."
+        },
+        "languages": {
+          "title": "Tamil, English, and Hindi",
+          "body": "Switch language anytime. The interface stays readable for more people."
+        }
+      }
+    },
+    "finalCta": {
+      "title": "Ready to take the next step?",
+      "body": "Create your account now. Choose worker or employer during registration.",
+      "action": "Create your account"
+    },
+    "footer": {
+      "explore": "Explore",
+      "language": "Language",
+      "rights": "All rights reserved.",
+      "note": "Jobs and support for people in Tamil Nadu."
+    }
   },
   "auth": {
-    "registerTitle": "Create account",
-    "registerHint": "You will verify your phone with an OTP next. You are not logged in until verification succeeds.",
+    "brandKicker": "HAM",
+    "brandHeadline": "Work and support, made clearer.",
+    "brandSupport": "A simple place for workers and employers across Tamil Nadu to find opportunities and stay connected.",
+    "brandPointRegister1": "Create your account with your mobile number",
+    "brandPointRegister2": "Verify once, then explore jobs or post openings",
+    "brandPointLogin1": "Sign in securely with password or OTP",
+    "brandPointLogin2": "Pick up where you left off on any device",
+    "registerEyebrow": "Join HAM",
+    "registerTitle": "Create your account",
+    "registerSupport": "Find jobs, connect with employers, and access support—all in one place.",
+    "registerSupportShort": "Find jobs, connect with employers, and access support.",
+    "registerHint": "You'll verify your phone with a one-time code before your account is activated.",
+    "registerLegal": "By continuing, you agree to HAM's <terms>Terms</terms> and <privacy>Privacy Policy</privacy>.",
+    "phoneHelpSecure": "We'll send a secure OTP to this number.",
+    "roleJoiningAs": "I am joining as a",
+    "roleWorkerShort": "Worker",
+    "roleEmployerShort": "Employer",
+    "loginEyebrow": "Welcome",
+    "loginWelcome": "Welcome back",
+    "loginSupport": "Sign in to continue to your HAM account.",
     "loginTitle": "Log in",
     "loginPassword": "Password login",
-    "loginOtp": "Login with OTP",
+    "loginOtp": "Sign in with OTP",
+    "loginOtpInstead": "Sign in with OTP instead",
+    "loginPasswordInstead": "Use password instead",
+    "otpLoginSupport": "We’ll send a one-time code to your mobile number. You do not need a password for this option.",
+    "otpLoginHelp": "Use the same number you registered with.",
+    "orDivider": "or",
+    "createAccountLink": "Create an account",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "passwordRequired": "Enter your password.",
     "otpTitle": "Enter OTP",
     "otpHint": "Enter the code sent to your phone. The code is never shown in this app.",
     "otpExpires": "Code expires in {seconds}s",
     "otpExpired": "Code expired. Request a new one.",
     "resendOtp": "Resend code",
-    "phone": "Phone (E.164)",
-    "phonePlaceholder": "+9198XXXXXXXX",
+    "phone": "Mobile number",
+    "phonePlaceholder": "98765 43210",
+    "phoneHelp": "We’ll send a one-time code to this number.",
+    "phoneInvalid": "Enter a valid mobile number.",
+    "phoneCountry": "Country code",
+    "phoneCountryIndia": "India",
     "password": "Password",
     "optionalPassword": "Password (optional)",
     "passwordHint": "At least 10 characters, not only numbers",
     "role": "I am a",
-    "roleEmployee": "Worker / employee",
+    "roleEmployee": "Worker / job seeker",
+    "roleEmployeeHint": "Find jobs and access support.",
     "roleEmployer": "Employer",
+    "roleEmployerHint": "Post jobs and connect with workers.",
     "preferredLanguage": "Preferred language",
+    "languageHelp": "This language will be saved with your account.",
     "emailOptional": "Email (optional)",
     "submitRegister": "Register",
+    "submitContinue": "Continue to verification",
+    "submitting": "Please wait…",
+    "nextStepHint": "Next, we’ll send a one-time code to verify your phone number.",
+    "conflictLogin": "This number already has an account. Log in instead",
     "submitLogin": "Log in",
     "submitOtp": "Verify",
-    "requestOtp": "Send OTP",
+    "requestOtp": "Send code",
     "setPasswordTitle": "Set password",
     "currentPassword": "Current password",
     "newPassword": "New password",
@@ -61,7 +215,7 @@
     "devOtpNote": "Local development: mock OTP appears in Nest logs when LOG_LEVEL=debug.",
     "pendingPhoneNote": "Account created. Verify your phone to activate it.",
     "alreadyHaveAccount": "Already have an account?",
-    "needAccount": "Need an account?",
+    "needAccount": "New to HAM?",
     "forgotPassword": "Forgot password?"
   },
   "errors": {

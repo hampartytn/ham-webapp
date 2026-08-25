@@ -1,7 +1,11 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
-import { PublicHeader } from "@/components/layout/public-header";
+import {
+  AuthFormIntro,
+  AuthPageLayout,
+} from "@/components/layout/auth-shell";
 import { LoginOtpRequestForm } from "@/features/auth/components/login-otp-request-form";
+import { Link } from "@/i18n/navigation";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -15,12 +19,27 @@ export default async function LoginOtpPage({ params, searchParams }: Props) {
   const t = await getTranslations("auth");
 
   return (
-    <>
-      <PublicHeader />
-      <main className="mx-auto w-full max-w-md space-y-6 px-6 py-12">
-        <h1 className="text-2xl font-semibold">{t("loginOtp")}</h1>
-        <LoginOtpRequestForm nextPath={next} />
-      </main>
-    </>
+    <AuthPageLayout
+      mode="login"
+      footer={
+        <p>
+          {t("needAccount")}{" "}
+          <Link
+            href="/register"
+            className="font-bold underline transition-colors hover:text-white/80"
+          >
+            {t("createAccountLink")}
+          </Link>
+        </p>
+      }
+    >
+      <AuthFormIntro
+        align="center"
+        eyebrow={t("loginEyebrow")}
+        title={t("loginOtp")}
+        support={t("otpLoginSupport")}
+      />
+      <LoginOtpRequestForm nextPath={next} />
+    </AuthPageLayout>
   );
 }

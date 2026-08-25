@@ -20,7 +20,7 @@ export function EmployeeSettingsPanel() {
   const router = useRouter();
   const qc = useQueryClient();
   const [lang, setLang] = useState<"ta" | "en" | "hi">(
-    locale === "en" || locale === "hi" ? locale : "ta",
+    locale === "en" || locale === "hi" || locale === "ta" ? locale : "hi",
   );
   const [msg, setMsg] = useState<string | null>(null);
 

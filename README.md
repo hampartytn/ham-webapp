@@ -15,7 +15,7 @@ One Next.js app for HAM (Tamil Nadu Job & Worker Welfare). Talks to **ham-backen
 cd ham-webapp
 cp .env.example .env.local   # if needed
 npm install
-npm run dev                  # http://localhost:3001  →  /ta
+npm run dev                  # http://localhost:3001  →  /hi (default)
 ```
 
 | Env | Purpose |
@@ -32,7 +32,7 @@ npm run dev                  # http://localhost:3001  →  /ta
 
 ### Auth smoke
 
-1. Register at `/ta/register` (E.164 phone)
+1. Register at `/hi/register` (E.164 phone)
 2. Copy OTP from Nest terminal (`MOCK OTP` banner) or `ham-backend/logs/mock-otp.log`
 3. Verify OTP → role home
 4. Wrong role path → `/forbidden`

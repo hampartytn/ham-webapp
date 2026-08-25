@@ -1,0 +1,605 @@
+/* HAM immersive authentication — full-viewport background + centered form */
+
+.ham-auth {
+  --auth-ink: #1c1412;
+  --auth-muted: #5f534f;
+  --auth-primary: #be1b0f;
+  --auth-primary-hover: #9a160c;
+  --auth-primary-fg: #fffaf8;
+  --auth-surface: rgba(255, 250, 247, 0.94);
+  --auth-surface-solid: #fffaf7;
+  --auth-surface-soft: #f4ebe7;
+  --auth-border: rgba(28, 20, 18, 0.12);
+  --auth-border-strong: rgba(28, 20, 18, 0.18);
+  --auth-focus: #be1b0f;
+  --auth-header-fg: #fffaf8;
+  --auth-header-muted: rgba(255, 250, 248, 0.78);
+  --auth-input-bg: #ffffff;
+  --auth-radius: 1.15rem;
+  --auth-radius-sm: 0.85rem;
+
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  color: var(--auth-ink);
+  background: #1c1412;
+}
+
+.ham-auth :focus-visible {
+  outline: 2px solid var(--auth-focus);
+  outline-offset: 3px;
+}
+
+/* —— Full-screen background —— */
+.ham-auth__bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ham-auth__bg-image {
+  object-fit: cover;
+  object-position: center 28%;
+  transform: scale(1.02);
+}
+
+.ham-auth__bg-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(16, 10, 9, 0.72) 0%,
+      rgba(16, 10, 9, 0.48) 38%,
+      rgba(16, 10, 9, 0.58) 68%,
+      rgba(16, 10, 9, 0.78) 100%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(190, 27, 15, 0.28) 0%,
+      transparent 48%,
+      rgba(28, 20, 18, 0.35) 100%
+    );
+}
+
+.ham-auth__bg-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 70% 60% at 50% 48%,
+    transparent 0%,
+    rgba(10, 6, 5, 0.45) 100%
+  );
+}
+
+@media (max-width: 639px) {
+  .ham-auth__bg-scrim {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(12, 8, 7, 0.78) 0%,
+        rgba(12, 8, 7, 0.62) 40%,
+        rgba(12, 8, 7, 0.72) 100%
+      ),
+      linear-gradient(
+        160deg,
+        rgba(190, 27, 15, 0.22) 0%,
+        transparent 50%
+      );
+  }
+
+  .ham-auth__bg-vignette {
+    background: radial-gradient(
+      ellipse 90% 70% at 50% 45%,
+      transparent 10%,
+      rgba(8, 5, 4, 0.55) 100%
+    );
+  }
+}
+
+/* —— Overlay header —— */
+.ham-auth__header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: linear-gradient(
+    180deg,
+    rgba(12, 8, 7, 0.55) 0%,
+    rgba(12, 8, 7, 0.18) 70%,
+    transparent 100%
+  );
+}
+
+.ham-auth__header-inner {
+  display: flex;
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .ham-auth__header-inner {
+    padding: 1.1rem 1.75rem;
+  }
+}
+
+.ham-auth__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--auth-header-fg);
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.ham-auth__brand:hover {
+  opacity: 0.92;
+}
+
+.ham-auth__brand-mark {
+  display: inline-flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  background: var(--auth-primary);
+  color: var(--auth-primary-fg);
+  font-size: 0.75rem;
+  font-weight: 750;
+  box-shadow: 0 8px 20px rgba(190, 27, 15, 0.35);
+}
+
+.ham-auth__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.ham-auth__header-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--auth-header-fg);
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.ham-auth__header-link:hover {
+  background: rgba(255, 250, 248, 0.12);
+}
+
+.ham-auth__header-cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--auth-primary);
+  color: var(--auth-primary-fg);
+  font-size: 0.875rem;
+  font-weight: 650;
+  text-decoration: none;
+  box-shadow: 0 8px 18px rgba(190, 27, 15, 0.28);
+  transition:
+    background-color 0.15s ease,
+    transform 0.12s ease;
+}
+
+.ham-auth__header-cta:hover {
+  background: var(--auth-primary-hover);
+}
+
+.ham-auth__header-cta:active {
+  transform: translateY(1px);
+}
+
+/* —— Centered stage —— */
+.ham-auth__stage {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.75rem 1rem 2rem;
+}
+
+@media (min-width: 640px) {
+  .ham-auth__stage {
+    padding: 1rem 1.5rem 2.75rem;
+  }
+}
+
+.ham-auth__surface {
+  width: 100%;
+  max-width: 26.5rem;
+  padding: 1.35rem 1.25rem 1.5rem;
+  border: 1px solid rgba(255, 250, 247, 0.55);
+  border-radius: var(--auth-radius);
+  background:
+    linear-gradient(
+      165deg,
+      rgba(255, 252, 250, 0.97) 0%,
+      rgba(255, 248, 244, 0.94) 100%
+    );
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.65) inset,
+    0 22px 55px rgba(8, 5, 4, 0.38),
+    0 2px 8px rgba(8, 5, 4, 0.18);
+  backdrop-filter: blur(14px);
+}
+
+@media (min-width: 640px) {
+  .ham-auth__surface {
+    max-width: 28rem;
+    padding: 1.85rem 1.85rem 1.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ham-auth__surface {
+    max-width: 29rem;
+  }
+}
+
+/* Register needs a bit more vertical room for role cards */
+.ham-auth__surface--wide {
+  max-width: 30rem;
+}
+
+@media (min-width: 640px) {
+  .ham-auth__surface--wide {
+    max-width: 32rem;
+  }
+}
+
+/* —— Form primitives on auth surface —— */
+.ham-auth .ham-auth-input-shell {
+  display: flex;
+  height: 3rem;
+  overflow: hidden;
+  border: 1px solid var(--auth-border-strong);
+  border-radius: var(--auth-radius-sm);
+  background: var(--auth-input-bg);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.ham-auth .ham-auth-input-shell:focus-within {
+  border-color: color-mix(in srgb, var(--auth-primary) 55%, var(--auth-border-strong));
+  box-shadow: 0 0 0 3px rgba(190, 27, 15, 0.18);
+}
+
+.ham-auth .ham-auth-input-shell--error {
+  border-color: color-mix(in srgb, #b42318 70%, transparent);
+  box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.14);
+}
+
+.ham-auth .ham-auth-role {
+  position: relative;
+  display: flex;
+  min-height: 7.25rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1.5px solid var(--auth-border-strong);
+  border-radius: 1rem;
+  background: var(--auth-input-bg);
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
+}
+
+.ham-auth .ham-auth-role:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--auth-primary) 40%, var(--auth-border-strong));
+  background: var(--auth-surface-soft);
+}
+
+.ham-auth .ham-auth-role:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.ham-auth .ham-auth-role--selected {
+  border-color: var(--auth-primary);
+  background: color-mix(in srgb, var(--auth-primary) 7%, #fff);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--auth-primary) 35%, transparent),
+    0 8px 20px rgba(190, 27, 15, 0.1);
+}
+
+.ham-auth .ham-auth-btn-primary {
+  height: 3rem;
+  width: 100%;
+  border-radius: var(--auth-radius-sm);
+  background: var(--auth-primary);
+  color: var(--auth-primary-fg);
+  font-size: 1rem;
+  font-weight: 650;
+  box-shadow: 0 12px 26px rgba(190, 27, 15, 0.28);
+  transition:
+    background-color 0.15s ease,
+    transform 0.12s ease,
+    box-shadow 0.15s ease;
+}
+
+.ham-auth .ham-auth-btn-primary:hover:not(:disabled) {
+  background: var(--auth-primary-hover);
+}
+
+.ham-auth .ham-auth-btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 8px 18px rgba(190, 27, 15, 0.22);
+}
+
+.ham-auth .ham-auth-btn-secondary {
+  height: 3rem;
+  width: 100%;
+  border: 1.5px solid var(--auth-primary, #d32f2f);
+  border-radius: var(--auth-radius-sm);
+  background: transparent;
+  color: var(--auth-primary, #d32f2f);
+  font-size: 1rem;
+  font-weight: 550;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.ham-auth .ham-auth-btn-secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--auth-primary, #d32f2f) 6%, transparent);
+  border-color: var(--auth-primary, #d32f2f);
+  color: var(--auth-primary, #d32f2f);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ham-auth *,
+  .ham-auth *::before,
+  .ham-auth *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .ham-auth__bg-image {
+    transform: none;
+  }
+
+  .ham-auth--designer .ham-auth-btn-designer:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* —— Shared designer auth layout (register + login) —— */
+.ham-auth--designer {
+  --auth-primary: #d32f2f;
+  --auth-primary-hover: #9a0007;
+  --auth-primary-fg: #ffffff;
+  --auth-ink: #1c1b1b;
+  --auth-muted: #534341;
+  --auth-surface-solid: #ffffff;
+  --auth-surface-soft: #f5f3f1;
+  --auth-focus: #d32f2f;
+}
+
+.ham-auth__bg--designer {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.ham-auth__bg-image--designer {
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  transform: none;
+  object-position: center center;
+}
+
+.ham-auth__bg-scrim--designer {
+  background: transparent;
+}
+
+.ham-auth__header--designer {
+  background: transparent;
+  position: relative;
+  width: 100%;
+}
+
+.ham-auth__header-inner--designer {
+  max-width: none;
+  width: 100%;
+  padding: 1rem 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .ham-auth__header-inner--designer {
+    padding: 1.5rem 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .ham-auth__header-inner--designer {
+    padding: 1.5rem 2.5rem;
+  }
+}
+
+.ham-auth__brand--designer {
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+}
+
+.ham-auth__brand-mark--designer {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.25rem;
+  background: #d32f2f;
+  box-shadow: none;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.ham-auth__stage--designer {
+  padding: 1.5rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .ham-auth__stage--designer {
+    padding: 3rem 1rem;
+  }
+}
+
+.ham-auth__surface--designer {
+  max-width: 460px;
+  padding: 1.5rem;
+  border: none;
+  border-radius: 1rem;
+  background: #ffffff;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  backdrop-filter: none;
+}
+
+@media (min-width: 768px) {
+  .ham-auth__surface--designer {
+    padding: 2rem;
+  }
+}
+
+.ham-auth__stack {
+  display: flex;
+  width: 100%;
+  max-width: 460px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1rem;
+}
+
+.ham-auth__stack .ham-auth__surface,
+.ham-auth__stack .ham-auth__surface--designer {
+  width: 100%;
+  max-width: none;
+}
+
+.ham-auth__card-footer {
+  padding: 0 0.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.ham-auth__header-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.25rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 1.15rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.ham-auth__header-cta-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.ham-auth--designer .ham-auth-btn-designer {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  background-image: linear-gradient(to right, #d32f2f, #9a0007);
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #ffffff;
+  box-shadow: 0 4px 14px 0 rgba(211, 47, 47, 0.39);
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
+}
+
+.ham-auth--designer .ham-auth-btn-designer:hover:not(:disabled) {
+  background-image: linear-gradient(to right, #9a0007, #7a0005);
+  transform: translateY(-2px);
+}
+
+.ham-auth--designer .ham-auth-btn-designer:disabled {
+  opacity: 0.7;
+  transform: none;
+}
+
+.ham-auth--designer .ham-auth-btn-designer-secondary,
+.ham-auth .ham-auth-btn-secondary,
+.ham-auth--designer a.ham-auth-btn-designer-secondary {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem !important;
+  border: 1.5px solid #d32f2f !important;
+  background: transparent !important;
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #d32f2f !important;
+  box-shadow: none !important;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.ham-auth--designer .ham-auth-btn-designer-secondary:hover:not(:disabled),
+.ham-auth .ham-auth-btn-secondary:hover:not(:disabled),
+.ham-auth--designer a.ham-auth-btn-designer-secondary:hover {
+  background: rgba(211, 47, 47, 0.06) !important;
+  border-color: #d32f2f !important;
+  color: #d32f2f !important;
+}
+
+/* Single light outer border for designer inputs — no nested focus rings */
+.ham-auth--designer .ham-auth-phone-floating__input:focus,
+.ham-auth--designer .ham-auth-phone-floating__input:focus-visible,
+.ham-auth--designer .ham-auth-password-designer__input:focus,
+.ham-auth--designer .ham-auth-password-designer__input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+

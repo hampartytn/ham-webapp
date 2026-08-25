@@ -13,6 +13,7 @@ import { BffError, bffJson } from "@/lib/api/bff-client";
 import type { AuthUserView, OtpPurpose } from "@/lib/api/types";
 import { homePathForRole, safeRedirectPath } from "@/lib/auth/redirect";
 import { useRouter } from "@/i18n/navigation";
+import { resolveAppLocale } from "@/i18n/routing";
 
 const schema = z.object({
   code: z.string().min(1),
@@ -90,7 +91,9 @@ export function OtpForm({
           nextPath,
           homePathForRole(data.user.role),
         );
-        router.replace(dest);
+        router.replace(dest, {
+          locale: resolveAppLocale(data.user.preferredLanguage),
+        });
         router.refresh();
       }
     } catch (error) {

@@ -1,0 +1,118 @@
+/* Landing-page scoped visual system — HAM brand primary #BE1B0F */
+
+.ham-landing {
+  --landing-ink: #1c1412;
+  --landing-muted: #6b5e5a;
+  --landing-primary: #be1b0f;
+  --landing-primary-hover: #9a160c;
+  --landing-primary-fg: #fffaf8;
+  --landing-surface: #ffffff;
+  --landing-surface-soft: #f7f3f1;
+  --landing-border: #e6ddd9;
+  --landing-accent: #be1b0f;
+  --landing-focus: #be1b0f;
+  --landing-hero-scrim: linear-gradient(
+    105deg,
+    rgba(28, 20, 18, 0.9) 0%,
+    rgba(28, 20, 18, 0.78) 40%,
+    rgba(28, 20, 18, 0.35) 68%,
+    rgba(28, 20, 18, 0.14) 100%
+  );
+
+  color: var(--landing-ink);
+  background:
+    radial-gradient(1100px 420px at 8% -8%, #f3e4e1 0%, transparent 58%),
+    radial-gradient(800px 380px at 100% 0%, #efe8e4 0%, transparent 52%),
+    var(--landing-surface-soft);
+  font-family:
+    var(--font-landing-sans), var(--font-landing-tamil), var(--font-geist-sans),
+    sans-serif;
+}
+
+.ham-landing :focus-visible {
+  outline: 2px solid var(--landing-focus);
+  outline-offset: 3px;
+}
+
+.ham-landing__display {
+  font-family:
+    var(--font-landing-display), var(--font-landing-sans),
+    var(--font-landing-tamil), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.ham-landing__container {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .ham-landing__container {
+    padding-inline: 1.75rem;
+  }
+}
+
+.ham-landing__section {
+  padding-block: 3.75rem;
+}
+
+@media (min-width: 768px) {
+  .ham-landing__section {
+    padding-block: 5.25rem;
+  }
+}
+
+.ham-landing__btn-primary {
+  background-color: var(--landing-primary);
+  color: var(--landing-primary-fg);
+}
+
+.ham-landing__btn-primary:hover {
+  background-color: var(--landing-primary-hover);
+}
+
+.ham-landing__reveal {
+  animation: ham-landing-rise 0.65s ease-out both;
+}
+
+.ham-landing__reveal--delay-1 {
+  animation-delay: 0.08s;
+}
+
+.ham-landing__reveal--delay-2 {
+  animation-delay: 0.16s;
+}
+
+.ham-landing__reveal--delay-3 {
+  animation-delay: 0.24s;
+}
+
+@keyframes ham-landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.65rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ham-landing__reveal,
+  .ham-landing__reveal--delay-1,
+  .ham-landing__reveal--delay-2,
+  .ham-landing__reveal--delay-3 {
+    animation: none;
+  }
+
+  .ham-landing header {
+    transition: none !important;
+  }
+
+  .ham-landing * {
+    transition-duration: 0.01ms !important;
+  }
+}

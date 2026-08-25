@@ -1,19 +1,26 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { PhoneNumberInput } from "@/components/shared/phone-number-input";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { BffError, bffJson } from "@/lib/api/bff-client";
-import { useRouter } from "@/i18n/navigation";
+import { isValidE164, splitE164 } from "@/lib/auth/phone";
+import { Link, useRouter } from "@/i18n/navigation";
+
+function isLoginPhone(phone: string): boolean {
+  if (!isValidE164(phone)) return false;
+  const { country, nationalDigits } = splitE164(phone);
+  return nationalDigits.length === country.nationalLength;
+}
 
 const schema = z.object({
-  phone: z.string().regex(/^\+[1-9]\d{7,14}$/),
+  phone: z.string().refine(isLoginPhone, { message: "phoneInvalid" }),
 });
 
 export function LoginOtpRequestForm({ nextPath }: { nextPath?: string }) {
@@ -22,11 +29,17 @@ export function LoginOtpRequestForm({ nextPath }: { nextPath?: string }) {
   const router = useRouter();
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [phoneTouched, setPhoneTouched] = useState(false);
 
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: { phone: "" },
+    mode: "onSubmit",
   });
+
+  const passwordHref = nextPath
+    ? `/login?next=${encodeURIComponent(nextPath)}`
+    : "/login";
 
   async function onSubmit(values: z.infer<typeof schema>) {
     setPending(true);
@@ -54,24 +67,68 @@ export function LoginOtpRequestForm({ nextPath }: { nextPath?: string }) {
     }
   }
 
+  const showPhoneError =
+    (phoneTouched || form.formState.isSubmitted) &&
+    Boolean(form.formState.errors.phone);
+
   return (
-    <form className="space-y-5" onSubmit={form.handleSubmit(onSubmit)}>
-      <div className="space-y-2">
-        <Label htmlFor="otp-login-phone">{t("phone")}</Label>
-        <Input
-          id="otp-login-phone"
-          placeholder={t("phonePlaceholder")}
-          {...form.register("phone")}
-        />
-      </div>
+    <form
+      className="space-y-6"
+      onSubmit={form.handleSubmit(onSubmit)}
+      noValidate
+    >
+      <Controller
+        control={form.control}
+        name="phone"
+        render={({ field }) => (
+          <PhoneNumberInput
+            id="otp-login-phone"
+            variant="floating"
+            label={t("phone")}
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={() => {
+              setPhoneTouched(true);
+              field.onBlur();
+            }}
+            error={showPhoneError ? t("phoneInvalid") : null}
+            hint={t("otpLoginHelp")}
+            disabled={pending}
+            autoFocus
+          />
+        )}
+      />
+
       {errorKey ? (
-        <p className="text-sm text-destructive" role="alert">
+        <div
+          className="rounded-lg border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+          role="alert"
+        >
           {te(errorKey as "UNKNOWN")}
-        </p>
+        </div>
       ) : null}
-      <Button type="submit" className="w-full" disabled={pending}>
-        {t("requestOtp")}
-      </Button>
+
+      <div className="pt-2">
+        <Button
+          type="submit"
+          className="ham-auth-btn-designer h-auto w-full"
+          disabled={pending}
+        >
+          {pending ? t("submitting") : t("requestOtp")}
+          {!pending ? (
+            <ArrowRight className="size-[18px] shrink-0" aria-hidden />
+          ) : null}
+        </Button>
+      </div>
+
+      <p className="text-center text-sm text-[#534341]">
+        <Link
+          href={passwordHref}
+          className="font-medium text-[#1c1b1b] underline-offset-4 hover:text-[#d32f2f] hover:underline"
+        >
+          {t("loginPasswordInstead")}
+        </Link>
+      </p>
     </form>
   );
 }

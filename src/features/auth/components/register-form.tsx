@@ -1,31 +1,30 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowRight } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { PreferredLanguageChips } from "@/components/shared/preferred-language-chips";
+import { PhoneNumberInput } from "@/components/shared/phone-number-input";
+import { RoleSegmentedControl } from "@/components/shared/role-segmented-control";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { BffError, bffJson } from "@/lib/api/bff-client";
-import { useRouter } from "@/i18n/navigation";
+import { isValidE164, splitE164 } from "@/lib/auth/phone";
+import { Link, useRouter } from "@/i18n/navigation";
+import { resolveAppLocale } from "@/i18n/routing";
+
+function isRegisterPhone(phone: string): boolean {
+  if (!isValidE164(phone)) return false;
+  const { country, nationalDigits } = splitE164(phone);
+  return nationalDigits.length === country.nationalLength;
+}
 
 const schema = z.object({
-  phone: z
-    .string()
-    .regex(/^\+[1-9]\d{7,14}$/, "phone must be E.164"),
+  phone: z.string().refine(isRegisterPhone, { message: "phoneInvalid" }),
   role: z.enum(["EMPLOYEE", "EMPLOYER"]),
-  preferredLanguage: z.enum(["ta", "en", "hi"]),
-  email: z.string().email().optional().or(z.literal("")),
-  password: z
-    .string()
-    .optional()
-    .refine(
-      (v) => !v || (/^(?!\d+$).{10,}$/.test(v) && v.length >= 10),
-      "password rules",
-    ),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -37,17 +36,23 @@ export function RegisterForm() {
   const router = useRouter();
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [phoneTouched, setPhoneTouched] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       phone: "",
       role: "EMPLOYEE",
-      preferredLanguage: locale === "hi" || locale === "en" ? locale : "ta",
-      email: "",
-      password: "",
     },
+    mode: "onSubmit",
   });
+
+  const phoneError =
+    phoneTouched || form.formState.isSubmitted
+      ? form.formState.errors.phone
+        ? t("phoneInvalid")
+        : null
+      : null;
 
   async function onSubmit(values: FormValues) {
     setPending(true);
@@ -58,9 +63,7 @@ export function RegisterForm() {
         body: JSON.stringify({
           phone: values.phone,
           role: values.role,
-          preferredLanguage: values.preferredLanguage,
-          email: values.email || undefined,
-          password: values.password || undefined,
+          preferredLanguage: resolveAppLocale(locale),
         }),
       });
 
@@ -91,72 +94,87 @@ export function RegisterForm() {
 
   return (
     <form
-      className="space-y-5"
+      className="space-y-6"
       onSubmit={form.handleSubmit(onSubmit)}
       noValidate
     >
-      <p className="text-sm text-muted-foreground">{t("registerHint")}</p>
+      <Controller
+        control={form.control}
+        name="phone"
+        render={({ field }) => (
+          <PhoneNumberInput
+            id="register-phone"
+            variant="floating"
+            label={t("phone")}
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={() => {
+              setPhoneTouched(true);
+              field.onBlur();
+            }}
+            error={phoneError}
+            hint={t("phoneHelpSecure")}
+            disabled={pending}
+            autoFocus
+          />
+        )}
+      />
 
-      <div className="space-y-2">
-        <Label htmlFor="phone">{t("phone")}</Label>
-        <Input
-          id="phone"
-          autoComplete="tel"
-          placeholder={t("phonePlaceholder")}
-          {...form.register("phone")}
-        />
-      </div>
+      <Controller
+        control={form.control}
+        name="role"
+        render={({ field }) => (
+          <RoleSegmentedControl
+            value={field.value}
+            onChange={field.onChange}
+            disabled={pending}
+          />
+        )}
+      />
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">{t("role")}</legend>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="radio" value="EMPLOYEE" {...form.register("role")} />
-          {t("roleEmployee")}
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="radio" value="EMPLOYER" {...form.register("role")} />
-          {t("roleEmployer")}
-        </label>
-      </fieldset>
-
-      <div className="space-y-2">
-        <Label htmlFor="preferredLanguage">{t("preferredLanguage")}</Label>
-        <select
-          id="preferredLanguage"
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-          {...form.register("preferredLanguage")}
-        >
-          <option value="ta">தமிழ்</option>
-          <option value="en">English</option>
-          <option value="hi">हिन्दी</option>
-        </select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="email">{t("emailOptional")}</Label>
-        <Input id="email" type="email" {...form.register("email")} />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="password">{t("optionalPassword")}</Label>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="new-password"
-          {...form.register("password")}
-        />
-        <p className="text-xs text-muted-foreground">{t("passwordHint")}</p>
-      </div>
+      <PreferredLanguageChips disabled={pending} />
 
       {errorKey ? (
-        <p className="text-sm text-destructive" role="alert">
-          {te(errorKey as "CONFLICT")}
-        </p>
+        <div
+          className="rounded-lg border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+          role="alert"
+        >
+          <p>{te(errorKey as "CONFLICT")}</p>
+          {errorKey === "CONFLICT" ? (
+            <p className="mt-2">
+              <Link
+                href="/login"
+                className="font-semibold underline underline-offset-4"
+              >
+                {t("conflictLogin")}
+              </Link>
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
-      <Button type="submit" className="w-full" disabled={pending}>
-        {t("submitRegister")}
-      </Button>
+      <div className="mt-2 pt-4">
+        <Button
+          type="submit"
+          className="ham-auth-btn-designer h-auto w-full"
+          disabled={pending}
+        >
+          {pending ? t("submitting") : t("submitContinue")}
+          {!pending ? (
+            <ArrowRight className="size-[18px] shrink-0" aria-hidden />
+          ) : null}
+        </Button>
+        <p className="mt-4 text-center text-xs text-[#534341]">
+          {t.rich("registerLegal", {
+            terms: (chunks) => (
+              <span className="cursor-default text-[#d32f2f]">{chunks}</span>
+            ),
+            privacy: (chunks) => (
+              <span className="cursor-default text-[#d32f2f]">{chunks}</span>
+            ),
+          })}
+        </p>
+      </div>
     </form>
   );
 }
