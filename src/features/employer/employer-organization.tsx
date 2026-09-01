@@ -8,13 +8,14 @@ import { EmployerPageHeader } from "@/components/employer/employer-page-header";
 import { ErrorState } from "@/components/shared/error-state";
 import { LoadingState } from "@/components/shared/loading-state";
 import { useBffErrorMessage } from "@/components/shared/status-badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Link } from "@/i18n/navigation";
 import { bffJson, proxyPath } from "@/lib/api/bff-client";
+import { geoDistrictsQueryOptions } from "@/lib/query/catalog";
 import type { CatalogItem, EmployerOrg } from "@/types/ham";
 
 export function EmployerOrganizationForm() {
+  const t = useTranslations("employer");
   const profileQ = useQuery({
     queryKey: ["employer-profile"],
     queryFn: () =>
@@ -24,10 +25,23 @@ export function EmployerOrganizationForm() {
         organization: EmployerOrg | null;
       }>(proxyPath("employer/profile")),
   });
+  useQuery(geoDistrictsQueryOptions);
 
-  if (profileQ.isLoading) return <LoadingState />;
+  if (profileQ.isPending && !profileQ.data) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-5">
+        <EmployerPageHeader title={t("orgTitle")} subtitle={t("orgSubtitle")} />
+        <LoadingState />
+      </div>
+    );
+  }
   if (profileQ.error) {
-    return <ErrorState onRetry={() => void profileQ.refetch()} />;
+    return (
+      <div className="mx-auto max-w-2xl space-y-5">
+        <EmployerPageHeader title={t("orgTitle")} subtitle={t("orgSubtitle")} />
+        <ErrorState onRetry={() => void profileQ.refetch()} />
+      </div>
+    );
   }
 
   return (
@@ -65,10 +79,7 @@ function EmployerOrganizationFields({
   const [msg, setMsg] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const districtsQ = useQuery({
-    queryKey: ["geo-districts"],
-    queryFn: () => bffJson<CatalogItem[]>(proxyPath("geo/districts")),
-  });
+  const districtsQ = useQuery(geoDistrictsQueryOptions);
   const citiesQ = useQuery({
     queryKey: ["geo-cities", districtId],
     enabled: Boolean(districtId),
@@ -121,7 +132,7 @@ function EmployerOrganizationFields({
         subtitle={t("orgSubtitle")}
       />
 
-      <section className="ham-employer__panel space-y-3">
+      <section className="ham-employer__card space-y-3 p-6">
         <h2 className="text-base font-semibold">{t("profileChecklist")}</h2>
         <ul className="space-y-1 text-sm">
           {checklist.map((item) => (
@@ -142,24 +153,35 @@ function EmployerOrganizationFields({
         </ul>
         {organization ? (
           <p className="text-xs text-[var(--emp-muted)]">
-            {t("verificationState")}: {organization.verificationState} ·{" "}
-            {t("activationStatus")}: {organization.activationStatus}
+            {t("verificationState")}:{" "}
+            {t(
+              `orgVerification.${organization.verificationState}` as "orgVerification.UNVERIFIED",
+            )}{" "}
+            · {t("activationStatus")}: {organization.activationStatus}
           </p>
         ) : null}
+        <Link
+          href="/employer/verification"
+          className="inline-block text-sm font-semibold text-[var(--emp-primary)] hover:underline"
+        >
+          {t("accountVerification")}
+        </Link>
       </section>
 
-      <section className="ham-employer__panel space-y-4">
+      <section className="ham-employer__card space-y-4 p-6">
         <h2 className="text-base font-semibold">{t("sectionCompany")}</h2>
         <div className="space-y-2">
           <Label>{t("employerFullName")}</Label>
-          <Input
+          <input
+            className="ham-employer__input"
             value={employerFullName}
             onChange={(e) => setEmployerFullName(e.target.value)}
           />
         </div>
         <div className="space-y-2">
           <Label>{t("orgName")}</Label>
-          <Input
+          <input
+            className="ham-employer__input"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -168,7 +190,7 @@ function EmployerOrganizationFields({
         <div className="space-y-2">
           <Label>{t("orgDescription")}</Label>
           <textarea
-            className="min-h-20 w-full rounded-md border border-input px-3 py-2 text-sm"
+            className="ham-employer__input min-h-20"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
@@ -176,14 +198,16 @@ function EmployerOrganizationFields({
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>{t("contactPhone")}</Label>
-            <Input
+            <input
+              className="ham-employer__input"
               value={contactPhone}
               onChange={(e) => setContactPhone(e.target.value)}
             />
           </div>
           <div className="space-y-2">
             <Label>{t("contactEmail")}</Label>
-            <Input
+            <input
+              className="ham-employer__input"
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
             />
@@ -191,13 +215,13 @@ function EmployerOrganizationFields({
         </div>
       </section>
 
-      <section className="ham-employer__panel space-y-4">
+      <section className="ham-employer__card space-y-4 p-6">
         <h2 className="text-base font-semibold">{t("sectionLocation")}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>{t("district")}</Label>
             <select
-              className="flex h-10 w-full rounded-md border border-input px-3 text-sm"
+              className="ham-employer__input"
               value={districtId}
               onChange={(e) => {
                 setDistrictId(e.target.value);
@@ -215,7 +239,7 @@ function EmployerOrganizationFields({
           <div className="space-y-2">
             <Label>{t("city")}</Label>
             <select
-              className="flex h-10 w-full rounded-md border border-input px-3 text-sm"
+              className="ham-employer__input"
               value={cityId}
               onChange={(e) => setCityId(e.target.value)}
             >
@@ -234,13 +258,15 @@ function EmployerOrganizationFields({
       {saved ? (
         <p className="text-sm text-emerald-700">{t("saveSuccess")}</p>
       ) : null}
-      <Button
+      <button
         type="button"
+        className="ham-employer__btn ham-employer__btn--primary"
         disabled={saveMut.isPending || !name}
         onClick={() => saveMut.mutate()}
       >
+        {saveMut.isPending ? <span className="ham-employer__spinner" /> : null}
         {t("saveOrg")}
-      </Button>
+      </button>
     </div>
   );
 }

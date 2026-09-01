@@ -6,6 +6,8 @@ import { LanguagePicker } from "@/components/shared/language-picker";
 import { LogoutButton } from "@/components/shared/logout-button";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
+import { prefetchRoleHref } from "@/lib/query/nav-prefetch";
+import { useQueryClient } from "@tanstack/react-query";
 
 const ITEMS = [
   { href: "/employee", key: "dashboard" as const },
@@ -21,6 +23,7 @@ const ITEMS = [
 export function EmployeeNav() {
   const t = useTranslations("shell");
   const pathname = usePathname();
+  const queryClient = useQueryClient();
 
   return (
     <div className="border-b border-border bg-background">
@@ -51,6 +54,7 @@ export function EmployeeNav() {
                   ? "bg-primary text-primary-foreground"
                   : "text-foreground hover:bg-muted",
               )}
+              onMouseEnter={() => prefetchRoleHref(queryClient, item.href)}
             >
               {t(item.key)}
             </Link>

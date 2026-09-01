@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -17,6 +18,7 @@ import { isValidE164, splitE164 } from "@/lib/auth/phone";
 import { homePathForRole, safeRedirectPath } from "@/lib/auth/redirect";
 import { Link, useRouter } from "@/i18n/navigation";
 import { resolveAppLocale } from "@/i18n/routing";
+import { prefetchMe, seedAuthSession } from "@/lib/query/session-cache";
 
 function isLoginPhone(phone: string): boolean {
   if (!isValidE164(phone)) return false;
@@ -35,6 +37,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
   const t = useTranslations("auth");
   const te = useTranslations("errors");
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [touched, setTouched] = useState({ phone: false, password: false });
@@ -57,11 +60,12 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
         method: "POST",
         body: JSON.stringify(values),
       });
+      seedAuthSession(queryClient, data.user);
+      prefetchMe(queryClient);
       const dest = safeRedirectPath(nextPath, homePathForRole(data.user.role));
       router.replace(dest, {
         locale: resolveAppLocale(data.user.preferredLanguage),
       });
-      router.refresh();
     } catch (error) {
       if (error instanceof BffError) {
         setErrorKey(error.code);

@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -13,6 +14,7 @@ import type { AuthUserView, OtpPurpose } from "@/lib/api/types";
 import { homePathForRole, safeRedirectPath } from "@/lib/auth/redirect";
 import { useRouter } from "@/i18n/navigation";
 import { resolveAppLocale } from "@/i18n/routing";
+import { prefetchMe, seedAuthSession } from "@/lib/query/session-cache";
 import { cn } from "@/lib/utils";
 
 const schema = z.object({
@@ -37,6 +39,7 @@ export function OtpForm({
   const t = useTranslations("auth");
   const te = useTranslations("errors");
   const router = useRouter();
+  const queryClient = useQueryClient();
   const inputId = useId();
   const [seconds, setSeconds] = useState(initialExpiresIn);
   const [errorKey, setErrorKey] = useState<string | null>(null);
@@ -93,6 +96,8 @@ export function OtpForm({
       }
 
       if ("user" in data) {
+        seedAuthSession(queryClient, data.user);
+        prefetchMe(queryClient);
         const dest = safeRedirectPath(
           nextPath,
           homePathForRole(data.user.role),
@@ -100,7 +105,6 @@ export function OtpForm({
         router.replace(dest, {
           locale: resolveAppLocale(data.user.preferredLanguage),
         });
-        router.refresh();
       }
     } catch (error) {
       if (error instanceof BffError) setErrorKey(error.code);

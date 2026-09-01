@@ -7,6 +7,9 @@ import { LanguagePicker } from "@/components/shared/language-picker";
 import { LogoutButton } from "@/components/shared/logout-button";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
+import { prefetchRoleHref } from "@/lib/query/nav-prefetch";
+import { usePrefetchCatalogs } from "@/lib/query/use-prefetch-catalogs";
+import { useQueryClient } from "@tanstack/react-query";
 
 const ITEMS = [
   { href: "/admin", key: "dashboard" as const },
@@ -26,6 +29,8 @@ const ITEMS = [
 export function AdminShell({ children }: { children: ReactNode }) {
   const t = useTranslations("shell");
   const pathname = usePathname();
+  const queryClient = useQueryClient();
+  usePrefetchCatalogs();
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -48,6 +53,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                     ? "bg-primary text-primary-foreground"
                     : "hover:bg-muted",
                 )}
+                onMouseEnter={() => prefetchRoleHref(queryClient, item.href)}
               >
                 {t(item.key)}
               </Link>

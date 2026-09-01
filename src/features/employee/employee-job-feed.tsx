@@ -50,11 +50,11 @@ export function EmployeeJobFeed() {
         />
       </div>
 
-      {feed.isLoading ? <LoadingState /> : null}
+      {feed.isPending && !feed.data ? <LoadingState /> : null}
       {feed.error ? (
         <ErrorState onRetry={() => void feed.refetch()} />
       ) : null}
-      {!feed.isLoading && jobs.length === 0 ? <EmptyState /> : null}
+      {!feed.isPending && jobs.length === 0 ? <EmptyState /> : null}
 
       <ul className="space-y-4">
         {jobs.map((job) => (

@@ -106,7 +106,7 @@ export function EmployerJobsPulse({
           {t("viewAllJobs")}
         </Link>
       }
-      className="ham-employer__panel--flush"
+      className="overflow-hidden p-0"
     >
       {jobs.length === 0 ? (
         <div className="px-4 py-8 text-center">

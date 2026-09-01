@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, ChevronDown, Languages } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import {
   useCallback,
@@ -16,7 +17,8 @@ import {
   localeDisplayOrder,
   type AppLocale,
 } from "@/i18n/routing";
-import { bffJson } from "@/lib/api/bff-client";
+import { isRoleAppPath } from "@/lib/auth/role";
+import { persistPreferredLanguage } from "@/lib/query/session-cache";
 import { cn } from "@/lib/utils";
 
 export const LOCALE_LABELS: Record<AppLocale, string> = {
@@ -43,6 +45,7 @@ export function LanguageSelector({
   const locale = useLocale() as AppLocale;
   const router = useRouter();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -77,22 +80,16 @@ export function LanguageSelector({
     };
   }, [open, close]);
 
-  async function selectLocale(code: AppLocale) {
+  function selectLocale(code: AppLocale) {
     if (code === locale) {
       close();
       return;
     }
 
-    try {
-      await bffJson("/api/proxy/me", {
-        method: "PATCH",
-        body: JSON.stringify({ preferredLanguage: code }),
-      });
-    } catch {
-      // Guest or temporary error — still switch UI locale.
-    }
-
     close();
+    if (isRoleAppPath(pathname)) {
+      persistPreferredLanguage(queryClient, code);
+    }
     startTransition(() => {
       router.replace(pathname, { locale: code });
     });

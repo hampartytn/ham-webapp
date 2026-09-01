@@ -11,8 +11,8 @@ import { ErrorState } from "@/components/shared/error-state";
 import { LoadingState } from "@/components/shared/loading-state";
 import { useBffErrorMessage } from "@/components/shared/status-badge";
 import { PasswordSetForm } from "@/features/auth/components/password-set-form";
-import { Button } from "@/components/ui/button";
 import { bffJson, proxyPath } from "@/lib/api/bff-client";
+import { ME_QUERY_KEY, ME_STALE_MS } from "@/lib/query/session-cache";
 import type { MeResponse } from "@/types/ham";
 
 export function EmployerSettingsPanel() {
@@ -23,8 +23,9 @@ export function EmployerSettingsPanel() {
   const [msg, setMsg] = useState<string | null>(null);
 
   const meQ = useQuery({
-    queryKey: ["me"],
+    queryKey: ME_QUERY_KEY,
     queryFn: () => bffJson<MeResponse>(proxyPath("me")),
+    staleTime: ME_STALE_MS,
   });
 
   const payMut = useMutation({
@@ -40,9 +41,27 @@ export function EmployerSettingsPanel() {
     onError: (e) => setMsg(errMsg(e)),
   });
 
-  if (meQ.isLoading) return <LoadingState />;
+  if (meQ.isPending && !meQ.data) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-5">
+        <EmployerPageHeader
+          title={ts("settings")}
+          subtitle={t("settingsSubtitle")}
+        />
+        <LoadingState />
+      </div>
+    );
+  }
   if (meQ.error || !meQ.data) {
-    return <ErrorState onRetry={() => void meQ.refetch()} />;
+    return (
+      <div className="mx-auto max-w-2xl space-y-5">
+        <EmployerPageHeader
+          title={ts("settings")}
+          subtitle={t("settingsSubtitle")}
+        />
+        <ErrorState onRetry={() => void meQ.refetch()} />
+      </div>
+    );
   }
 
   return (
@@ -52,7 +71,7 @@ export function EmployerSettingsPanel() {
         subtitle={t("settingsSubtitle")}
       />
 
-      <section className="ham-employer__panel space-y-3">
+      <section className="ham-employer__card space-y-3 p-6">
         <h2 className="text-base font-semibold">{t("sectionAccount")}</h2>
         <p className="text-sm">
           <span className="font-medium">{t("accountPhone")}: </span>
@@ -66,32 +85,32 @@ export function EmployerSettingsPanel() {
         ) : null}
       </section>
 
-      <section className="ham-employer__panel space-y-3">
+      <section className="ham-employer__card space-y-3 p-6">
         <h2 className="text-base font-semibold">{t("sectionLanguage")}</h2>
         <p className="text-sm text-[var(--emp-muted)]">{t("languageHelp")}</p>
         <LanguageSelector appearance="form" />
       </section>
 
-      <section className="ham-employer__panel space-y-4">
+      <section className="ham-employer__card space-y-4 p-6">
         <h2 className="text-base font-semibold">{ta("setPasswordTitle")}</h2>
         <PasswordSetForm />
       </section>
 
-      <section className="ham-employer__panel space-y-3">
+      <section className="ham-employer__card space-y-3 p-6">
         <h2 className="text-base font-semibold">{t("sectionPayments")}</h2>
         <p className="text-sm text-[var(--emp-muted)]">{t("paymentsNote")}</p>
-        <Button
+        <button
           type="button"
-          variant="outline"
+          className="ham-employer__btn ham-employer__btn--secondary"
           onClick={() => payMut.mutate()}
           disabled={payMut.isPending}
         >
           {t("initiatePayment")}
-        </Button>
+        </button>
         {msg ? <p className="text-sm">{msg}</p> : null}
       </section>
 
-      <section className="ham-employer__panel">
+      <section className="ham-employer__card p-6">
         <LogoutButton />
       </section>
     </div>

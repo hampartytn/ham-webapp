@@ -6,7 +6,6 @@ import { useTransition } from "react";
 import { LOCALE_LABELS } from "@/components/shared/language-selector";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
-import { bffJson } from "@/lib/api/bff-client";
 import { cn } from "@/lib/utils";
 
 /** Visual order matching the register design mock. */
@@ -26,17 +25,8 @@ export function PreferredLanguageChips({ disabled }: Props) {
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
 
-  async function selectLocale(code: AppLocale) {
+  function selectLocale(code: AppLocale) {
     if (code === locale || disabled || pending) return;
-
-    try {
-      await bffJson("/api/proxy/me", {
-        method: "PATCH",
-        body: JSON.stringify({ preferredLanguage: code }),
-      });
-    } catch {
-      // Guest — still switch UI locale.
-    }
 
     startTransition(() => {
       router.replace(pathname, { locale: code });

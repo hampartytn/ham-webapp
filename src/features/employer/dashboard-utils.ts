@@ -177,10 +177,10 @@ export function toneForStatus(status: string): StatusTone {
     case "SHORTLISTED":
       return "success";
     case "SUBMITTED":
-      return "warning";
+      return "info";
     case "DRAFT":
     case "VIEWED":
-      return "info";
+      return "muted";
     case "REJECTED":
     case "CLOSED":
       return "danger";
@@ -190,4 +190,100 @@ export function toneForStatus(status: string): StatusTone {
     default:
       return "neutral";
   }
+}
+
+export type ChartRangeId = "7d" | "20d" | "6m" | "1y" | "3y" | "5y" | "all";
+
+export const CHART_RANGES: { id: ChartRangeId; days: number | null }[] = [
+  { id: "7d", days: 7 },
+  { id: "20d", days: 20 },
+  { id: "6m", days: 183 },
+  { id: "1y", days: 365 },
+  { id: "3y", days: 365 * 3 },
+  { id: "5y", days: 365 * 5 },
+  { id: "all", days: null },
+];
+
+function startOfDay(ms: number) {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function inRange(iso: string, fromMs: number) {
+  return new Date(iso).getTime() >= fromMs;
+}
+
+export function countInWindow(timestamps: string[], days: number): number {
+  const from = Date.now() - days * 86400000;
+  return timestamps.filter((t) => inRange(t, from)).length;
+}
+
+export function buildHiringBuckets(
+  timestamps: string[],
+  range: ChartRangeId,
+  locale: string,
+): { label: string; count: number }[] {
+  const now = Date.now();
+  const spec = CHART_RANGES.find((r) => r.id === range) ?? CHART_RANGES[0]!;
+  const fromMs = spec.days == null ? 0 : now - spec.days * 86400000;
+  const filtered = timestamps.filter((t) => inRange(t, fromMs));
+
+  if (range === "7d" || range === "20d") {
+    const days = range === "7d" ? 7 : 20;
+    const buckets: { label: string; count: number }[] = [];
+    for (let i = days - 1; i >= 0; i -= 1) {
+      const start = startOfDay(now - i * 86400000);
+      const end = start + 86400000;
+      const count = filtered.filter((t) => {
+        const ms = new Date(t).getTime();
+        return ms >= start && ms < end;
+      }).length;
+      const label = new Date(start).toLocaleDateString(locale, {
+        weekday: range === "7d" ? "short" : undefined,
+        day: "numeric",
+        month: range === "20d" ? "short" : undefined,
+      });
+      buckets.push({ label, count });
+    }
+    return buckets;
+  }
+
+  const monthCount =
+    range === "6m" ? 6 : range === "1y" ? 12 : range === "3y" ? 36 : range === "5y" ? 60 : 24;
+  const earliest = filtered.reduce((min, t) => {
+    const ms = new Date(t).getTime();
+    return ms < min ? ms : min;
+  }, now);
+  const months =
+    range === "all"
+      ? Math.max(
+          6,
+          Math.min(
+            24,
+            Math.ceil((now - startOfDay(earliest)) / (86400000 * 30)) || 6,
+          ),
+        )
+      : Math.min(monthCount, 24);
+
+  const buckets: { label: string; count: number }[] = [];
+  const cursor = new Date();
+  cursor.setDate(1);
+  cursor.setHours(0, 0, 0, 0);
+  for (let i = months - 1; i >= 0; i -= 1) {
+    const start = new Date(cursor.getFullYear(), cursor.getMonth() - i, 1).getTime();
+    const end = new Date(cursor.getFullYear(), cursor.getMonth() - i + 1, 1).getTime();
+    const count = filtered.filter((t) => {
+      const ms = new Date(t).getTime();
+      return ms >= start && ms < end;
+    }).length;
+    buckets.push({
+      label: new Date(start).toLocaleDateString(locale, {
+        month: "short",
+        year: months > 12 ? "2-digit" : undefined,
+      }),
+      count,
+    });
+  }
+  return buckets;
 }

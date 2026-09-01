@@ -83,6 +83,7 @@ async function tryRefresh(
         accessToken: pair.accessToken,
         refreshToken: pair.refreshToken,
         expiresIn: pair.expiresIn,
+        role: pair.user.role,
       }),
     };
   } catch {
@@ -131,6 +132,7 @@ export async function applyTokenCookies(
     accessToken: pair.accessToken,
     refreshToken: pair.refreshToken,
     expiresIn: pair.expiresIn,
+    role: pair.user.role,
   });
 }
 

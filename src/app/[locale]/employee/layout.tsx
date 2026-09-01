@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
-import { redirect } from "next/navigation";
 
+import { AccountStatusGate } from "@/components/layout/account-status-gate";
 import { EmployeeShell } from "@/components/layout/employee-shell";
-import { getServerSession } from "@/lib/auth/session";
-import { ErrorState } from "@/components/shared/error-state";
+import { assertRoleLayoutAccess } from "@/lib/auth/layout-auth";
 
 type Props = {
   children: ReactNode;
@@ -12,30 +11,11 @@ type Props = {
 
 export default async function EmployeeLayout({ children, params }: Props) {
   const { locale } = await params;
-  const session = await getServerSession();
+  await assertRoleLayoutAccess(locale, ["EMPLOYEE"], "/employee");
 
-  if (!session) {
-    redirect(`/${locale}/login?next=/${locale}/employee`);
-  }
-
-  if (session.role !== "EMPLOYEE") {
-    redirect(`/${locale}/forbidden`);
-  }
-
-  if (
-    session.accountStatus === "SUSPENDED" ||
-    session.accountStatus === "BLOCKED"
-  ) {
-    return (
-      <ErrorState
-        code={
-          session.accountStatus === "SUSPENDED"
-            ? "ACCOUNT_SUSPENDED"
-            : "ACCOUNT_BLOCKED"
-        }
-      />
-    );
-  }
-
-  return <EmployeeShell>{children}</EmployeeShell>;
+  return (
+    <EmployeeShell>
+      <AccountStatusGate>{children}</AccountStatusGate>
+    </EmployeeShell>
+  );
 }

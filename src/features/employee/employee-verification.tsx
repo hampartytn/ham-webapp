@@ -53,8 +53,22 @@ export function EmployeeVerificationPanel() {
     onError: (e) => setMsg(errMsg(e)),
   });
 
-  if (meQ.isLoading) return <LoadingState />;
-  if (meQ.error) return <ErrorState onRetry={() => void meQ.refetch()} />;
+  if (meQ.isPending && !meQ.data) {
+    return (
+      <div className="mx-auto max-w-lg space-y-6">
+        <h1 className="text-2xl font-semibold">{t("verificationTitle")}</h1>
+        <LoadingState />
+      </div>
+    );
+  }
+  if (meQ.error) {
+    return (
+      <div className="mx-auto max-w-lg space-y-6">
+        <h1 className="text-2xl font-semibold">{t("verificationTitle")}</h1>
+        <ErrorState onRetry={() => void meQ.refetch()} />
+      </div>
+    );
+  }
 
   const v = meQ.data;
 

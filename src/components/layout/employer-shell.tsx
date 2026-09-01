@@ -1,17 +1,19 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
 import {
   Bell,
   BriefcaseBusiness,
   Building2,
+  CircleHelp,
+  CreditCard,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
   Menu,
+  MessageSquare,
   Search,
   Settings,
-  UserPlus,
   Users,
   X,
 } from "lucide-react";
@@ -27,12 +29,25 @@ import { LanguageSelector } from "@/components/shared/language-selector";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { bffJson, proxyPath } from "@/lib/api/bff-client";
 import { cn } from "@/lib/utils";
+import { ME_QUERY_KEY, ME_STALE_MS } from "@/lib/query/session-cache";
+import { prefetchRoleHref } from "@/lib/query/nav-prefetch";
+import { usePrefetchCatalogs } from "@/lib/query/use-prefetch-catalogs";
 import type { MeResponse } from "@/types/ham";
+import { dashboardDisplayName, workerInitials } from "@/features/employer/dashboard-utils";
 import "@/styles/employer.css";
 
 type NavItem = {
   href: string;
-  key: "dashboard" | "jobs" | "applicants" | "findWorkers" | "organization";
+  key:
+    | "dashboard"
+    | "jobs"
+    | "applicants"
+    | "employees"
+    | "messages"
+    | "notifications"
+    | "organization"
+    | "membership"
+    | "settings";
   icon: typeof LayoutDashboard;
 };
 
@@ -40,8 +55,15 @@ const PRIMARY_NAV: NavItem[] = [
   { href: "/employer", key: "dashboard", icon: LayoutDashboard },
   { href: "/employer/jobs", key: "jobs", icon: BriefcaseBusiness },
   { href: "/employer/applicants", key: "applicants", icon: Users },
-  { href: "/employer/workers", key: "findWorkers", icon: UserPlus },
+  { href: "/employer/workers", key: "employees", icon: Users },
+  { href: "/employer/messages", key: "messages", icon: MessageSquare },
+  { href: "/employer/notifications", key: "notifications", icon: Bell },
+];
+
+const SECONDARY_NAV: NavItem[] = [
   { href: "/employer/organization", key: "organization", icon: Building2 },
+  { href: "/employer/membership", key: "membership", icon: CreditCard },
+  { href: "/employer/settings", key: "settings", icon: Settings },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -56,9 +78,9 @@ export function EmployerShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();
+  usePrefetchCatalogs();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [menuPath, setMenuPath] = useState(pathname);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -68,42 +90,38 @@ export function EmployerShell({ children }: { children: ReactNode }) {
     setMenuPath(pathname);
     setMobileOpen(false);
     setProfileOpen(false);
-    setNotifOpen(false);
   }
 
+  const chromeLess =
+    pathname === "/employer/welcome" || pathname === "/employer/onboarding";
+
   const meQ = useQuery({
-    queryKey: ["me"],
+    queryKey: ME_QUERY_KEY,
     queryFn: () => bffJson<MeResponse>(proxyPath("me")),
-    staleTime: 60_000,
+    staleTime: ME_STALE_MS,
   });
 
-  const employerName =
-    meQ.data?.employerProfile?.fullName ||
-    meQ.data?.employerProfile?.organizationName ||
-    meQ.data?.phone ||
-    "—";
-
-  const hasAttentionHint = Boolean(
-    !meQ.data?.employerProfile?.organizationId,
+  const display = meQ.data
+    ? dashboardDisplayName(meQ.data)
+    : { welcomeName: te("employerRole"), companyLine: null };
+  const initials = workerInitials(
+    meQ.data?.employerProfile?.fullName ?? display.welcomeName,
   );
 
-  function onSearchSubmit(e: FormEvent) {
-    e.preventDefault();
+  function submitSearch(event: FormEvent) {
+    event.preventDefault();
     const q = search.trim().toLowerCase();
-    if (!q) {
-      router.push("/employer/jobs");
-      return;
-    }
-    if (q.includes("worker") || q.includes("find")) {
-      router.push("/employer/workers");
-      return;
-    }
-    if (q.includes("applicant") || q.includes("hire") || q.includes("queue")) {
+    if (!q) return;
+    if (q.includes("applicant") || q.includes("hire") || q.includes("apply")) {
       router.push("/employer/applicants");
       return;
     }
     if (q.includes("org") || q.includes("company") || q.includes("profile")) {
       router.push("/employer/organization");
+      return;
+    }
+    if (q.includes("worker") || q.includes("employee")) {
+      router.push("/employer/workers");
       return;
     }
     router.push("/employer/jobs");
@@ -118,7 +136,51 @@ export function EmployerShell({ children }: { children: ReactNode }) {
     }
     queryClient.clear();
     router.replace("/login");
-    router.refresh();
+  }
+
+  function NavLink({ item }: { item: NavItem }) {
+    const active = isActive(pathname, item.href);
+    const Icon = item.icon;
+    const label =
+      item.key === "employees"
+        ? te("navEmployees")
+        : item.key === "messages"
+          ? te("navMessages")
+          : item.key === "notifications"
+            ? te("notifications")
+            : item.key === "membership"
+              ? te("navMembership")
+              : item.key === "organization"
+                ? te("orgTitle")
+                : item.key === "applicants"
+                  ? te("navApplications")
+                  : t(item.key === "settings" ? "settings" : item.key);
+    return (
+      <Link
+        href={item.href}
+        className={cn(
+          "ham-employer__nav-item",
+          active && "ham-employer__nav-item--active",
+        )}
+        aria-current={active ? "page" : undefined}
+        onMouseEnter={() => prefetchRoleHref(queryClient, item.href)}
+        onClick={() => setMobileOpen(false)}
+      >
+        <Icon className="size-5 shrink-0" strokeWidth={1.75} aria-hidden />
+        <span>{label}</span>
+      </Link>
+    );
+  }
+
+  if (chromeLess) {
+    return (
+      <div className="ham-employer relative min-h-dvh">
+        <div className="absolute end-4 top-4 z-10">
+          <LanguageSelector appearance="default" />
+        </div>
+        <div className="mx-auto max-w-lg px-4 py-10">{children}</div>
+      </div>
+    );
   }
 
   return (
@@ -139,209 +201,130 @@ export function EmployerShell({ children }: { children: ReactNode }) {
           !mobileOpen && "ham-employer__sidebar--mobile-closed",
         )}
       >
-        <Link
-          href="/employer"
-          className="ham-employer__logo"
-          aria-label="HAM"
-          onClick={() => setMobileOpen(false)}
-        >
-          H
+        <Link href="/employer" className="ham-employer__brand" onClick={() => setMobileOpen(false)}>
+          <span className="ham-employer__brand-mark" aria-hidden>
+            <Building2 className="size-5" />
+          </span>
+          <span>
+            <span className="ham-employer__brand-name block">{te("brandName")}</span>
+            <span className="ham-employer__brand-sub block">{te("brandSubtitle")}</span>
+          </span>
         </Link>
 
-        <nav className="ham-employer__rail-nav" aria-label={t("employerNav")}>
-          {PRIMARY_NAV.map((item) => {
-            const active = isActive(pathname, item.href);
-            const Icon = item.icon;
-            const label =
-              item.key === "findWorkers" ? t("findWorkers") : t(item.key);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={label}
-                aria-label={label}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "ham-employer__rail-item",
-                  active && "ham-employer__rail-item--active",
-                )}
-                onClick={() => setMobileOpen(false)}
-              >
-                <Icon className="size-[1.15rem]" strokeWidth={1.75} />
-              </Link>
-            );
-          })}
+        <nav className="ham-employer__nav" aria-label={t("employerNav")}>
+          {PRIMARY_NAV.map((item) => (
+            <NavLink key={item.href} item={item} />
+          ))}
+          <div className="ham-employer__nav-split" />
+          {SECONDARY_NAV.map((item) => (
+            <NavLink key={item.href} item={item} />
+          ))}
         </nav>
 
-        <div className="ham-employer__rail-foot">
+        <div className="ham-employer__nav-foot">
           <Link
-            href="/employer/settings"
-            title={t("settings")}
-            aria-label={t("settings")}
-            aria-current={
-              isActive(pathname, "/employer/settings") ? "page" : undefined
-            }
-            className={cn(
-              "ham-employer__rail-item",
-              isActive(pathname, "/employer/settings") &&
-                "ham-employer__rail-item--active",
-            )}
+            href="/employer/help"
+            className="ham-employer__nav-item"
             onClick={() => setMobileOpen(false)}
           >
-            <Settings className="size-[1.15rem]" strokeWidth={1.75} />
+            <CircleHelp className="size-5 shrink-0" aria-hidden />
+            <span>{te("navHelp")}</span>
+          </Link>
+          <Link
+            href="/employer/support"
+            className="ham-employer__nav-item"
+            onClick={() => setMobileOpen(false)}
+          >
+            <LifeBuoy className="size-5 shrink-0" aria-hidden />
+            <span>{te("navSupport")}</span>
           </Link>
           <button
             type="button"
-            className="ham-employer__rail-item"
-            title={tc("logout")}
-            aria-label={tc("logout")}
+            className="ham-employer__nav-item ham-employer__nav-item--danger"
             disabled={loggingOut}
             onClick={() => void logout()}
           >
-            <LogOut className="size-[1.15rem]" strokeWidth={1.75} />
+            <LogOut className="size-5 shrink-0" aria-hidden />
+            <span>{tc("logout")}</span>
           </button>
         </div>
-
-        <button
-          type="button"
-          className="mt-2 inline-flex rounded-full p-2 text-[var(--emp-muted)] md:hidden"
-          aria-label={t("closeMenu")}
-          onClick={() => setMobileOpen(false)}
-        >
-          <X className="size-4" />
-        </button>
       </aside>
 
-      <div className="ham-employer__main-wrap">
-        <header className="ham-employer__topbar">
+      <header className="ham-employer__header">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <button
             type="button"
-            className="ham-employer__icon-btn md:hidden"
+            className="rounded-lg p-2 text-[var(--emp-muted)] hover:bg-[var(--emp-soft)] md:hidden"
+            aria-label={mobileOpen ? t("closeMenu") : t("openMenu")}
             aria-expanded={mobileOpen}
             aria-controls={menuId}
-            aria-label={t("openMenu")}
-            onClick={() => setMobileOpen(true)}
+            onClick={() => setMobileOpen((v) => !v)}
           >
-            <Menu className="size-5" />
+            {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
-
-          <form className="ham-employer__search" onSubmit={onSearchSubmit}>
-            <Search className="size-4 shrink-0" aria-hidden />
+          <form className="ham-employer__search hidden md:block" onSubmit={submitSearch}>
+            <Search className="ham-employer__search-icon size-4" aria-hidden />
             <input
-              type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={te("searchPlaceholder")}
               aria-label={te("searchPlaceholder")}
             />
           </form>
-
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="relative">
-              <button
-                type="button"
-                className="ham-employer__icon-btn"
-                aria-label={te("notifications")}
-                aria-expanded={notifOpen}
-                onClick={() => {
-                  setNotifOpen((v) => !v);
-                  setProfileOpen(false);
-                }}
-              >
-                <Bell className="size-[1.15rem]" strokeWidth={1.75} />
-                {hasAttentionHint ? (
-                  <span className="ham-employer__notif-dot" aria-hidden />
-                ) : null}
-              </button>
-              {notifOpen ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="absolute end-0 z-30 mt-2 w-64 overflow-hidden rounded-2xl border border-[var(--emp-border)] bg-white py-2 shadow-lg"
-                  role="dialog"
-                  aria-label={te("notifications")}
+        </div>
+        <div className="flex items-center gap-3 sm:gap-5">
+          <LanguageSelector appearance="default" />
+          <Link
+            href="/employer/notifications"
+            className="relative rounded-full p-2 text-[var(--emp-muted)] transition-colors hover:bg-[var(--emp-soft)] hover:text-[var(--emp-primary)]"
+            aria-label={te("notifications")}
+          >
+            <Bell className="size-5" />
+          </Link>
+          <Link
+            href="/employer/help"
+            className="hidden rounded-full p-2 text-[var(--emp-muted)] transition-colors hover:bg-[var(--emp-soft)] hover:text-[var(--emp-primary)] sm:inline-flex"
+            aria-label={te("navHelp")}
+          >
+            <CircleHelp className="size-5" />
+          </Link>
+          <span className="hidden h-8 w-px bg-[var(--emp-border)] sm:block" aria-hidden />
+          <div className="relative">
+            <button
+              type="button"
+              className="flex items-center gap-2"
+              aria-expanded={profileOpen}
+              onClick={() => setProfileOpen((v) => !v)}
+            >
+              <span className="flex size-8 items-center justify-center rounded-full border border-[var(--emp-border)] bg-[var(--emp-primary-light)] text-xs font-semibold text-[var(--emp-primary-dark)]">
+                {initials}
+              </span>
+            </button>
+            {profileOpen ? (
+              <div className="absolute end-0 z-30 mt-2 w-52 rounded-xl border border-[var(--emp-border)] bg-white py-1 shadow-[0_10px_15px_-3px_rgba(15,23,42,0.1)]">
+                <p className="truncate px-3 py-2 text-sm font-medium">{display.welcomeName}</p>
+                <Link
+                  href="/employer/settings"
+                  className="block px-3 py-2 text-sm hover:bg-[var(--emp-soft)]"
+                  onClick={() => setProfileOpen(false)}
                 >
-                  <p className="px-3.5 py-2 text-sm font-semibold">
-                    {te("notifications")}
-                  </p>
-                  <p className="px-3.5 pb-3 text-xs text-[var(--emp-muted)]">
-                    {te("notificationsEmpty")}
-                  </p>
-                  {!meQ.data?.employerProfile?.organizationId ? (
-                    <Link
-                      href="/employer/organization"
-                      className="block px-3.5 py-2 text-sm text-primary hover:bg-[var(--emp-soft)]"
-                      onClick={() => setNotifOpen(false)}
-                    >
-                      {te("completeProfile")}
-                    </Link>
-                  ) : null}
-                </motion.div>
-              ) : null}
-            </div>
-
-            <LanguageSelector appearance="default" />
-
-            <div className="relative">
-              <button
-                type="button"
-                className="ham-employer__profile-chip"
-                aria-expanded={profileOpen}
-                aria-haspopup="menu"
-                onClick={() => {
-                  setProfileOpen((v) => !v);
-                  setNotifOpen(false);
-                }}
-              >
-                <span className="ham-employer__avatar-lg" aria-hidden>
-                  {(employerName || "E").slice(0, 1).toUpperCase()}
-                </span>
-                <span className="hidden min-w-0 pe-1 text-start sm:block">
-                  <span className="block truncate text-sm font-semibold">
-                    {employerName}
-                  </span>
-                  <span className="block truncate text-[0.7rem] text-[var(--emp-muted)]">
-                    {te("employerRole")}
-                  </span>
-                </span>
-              </button>
-              {profileOpen ? (
-                <div
-                  role="menu"
-                  className="absolute end-0 z-30 mt-2 w-52 overflow-hidden rounded-2xl border border-[var(--emp-border)] bg-white py-1 shadow-lg"
+                  {t("settings")}
+                </Link>
+                <button
+                  type="button"
+                  className="block w-full px-3 py-2 text-left text-sm text-[var(--emp-error)] hover:bg-[var(--emp-soft)]"
+                  onClick={() => void logout()}
                 >
-                  <Link
-                    role="menuitem"
-                    href="/employer/organization"
-                    className="block px-3.5 py-2.5 text-sm hover:bg-[var(--emp-soft)]"
-                    onClick={() => setProfileOpen(false)}
-                  >
-                    {te("orgTitle")}
-                  </Link>
-                  <Link
-                    role="menuitem"
-                    href="/employer/settings"
-                    className="block px-3.5 py-2.5 text-sm hover:bg-[var(--emp-soft)]"
-                    onClick={() => setProfileOpen(false)}
-                  >
-                    {t("settings")}
-                  </Link>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="block w-full px-3.5 py-2.5 text-start text-sm hover:bg-[var(--emp-soft)]"
-                    disabled={loggingOut}
-                    onClick={() => void logout()}
-                  >
-                    {tc("logout")}
-                  </button>
-                </div>
-              ) : null}
-            </div>
+                  {tc("logout")}
+                </button>
+              </div>
+            ) : null}
           </div>
-        </header>
+        </div>
+      </header>
 
-        <main className="flex-1 px-1 pt-5 sm:px-2 md:pt-6">{children}</main>
+      <div className="ham-employer__main">
+        <div className="ham-employer__canvas">{children}</div>
       </div>
     </div>
   );

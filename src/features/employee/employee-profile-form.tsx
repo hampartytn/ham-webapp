@@ -11,17 +11,33 @@ import { ErrorState } from "@/components/shared/error-state";
 import { LoadingState } from "@/components/shared/loading-state";
 import { useBffErrorMessage } from "@/components/shared/status-badge";
 import { BffError, bffJson, proxyPath } from "@/lib/api/bff-client";
+import { geoDistrictsQueryOptions, skillsQueryOptions } from "@/lib/query/catalog";
 import type { CatalogItem, EmployeeProfile } from "@/types/ham";
 
 export function EmployeeProfileForm() {
+  const t = useTranslations("employee");
   const profileQ = useQuery({
     queryKey: ["employee-profile"],
     queryFn: () => bffJson<EmployeeProfile>(proxyPath("employee/profile")),
   });
+  useQuery(geoDistrictsQueryOptions);
+  useQuery(skillsQueryOptions);
 
-  if (profileQ.isLoading) return <LoadingState />;
+  if (profileQ.isPending && !profileQ.data) {
+    return (
+      <div className="mx-auto max-w-lg space-y-6">
+        <h1 className="text-2xl font-semibold">{t("editProfile")}</h1>
+        <LoadingState />
+      </div>
+    );
+  }
   if (profileQ.error || !profileQ.data) {
-    return <ErrorState onRetry={() => void profileQ.refetch()} />;
+    return (
+      <div className="mx-auto max-w-lg space-y-6">
+        <h1 className="text-2xl font-semibold">{t("editProfile")}</h1>
+        <ErrorState onRetry={() => void profileQ.refetch()} />
+      </div>
+    );
   }
 
   return <EmployeeProfileFormFields key={profileQ.data.id} profile={profileQ.data} />;
@@ -53,14 +69,8 @@ function EmployeeProfileFormFields({ profile }: { profile: EmployeeProfile }) {
     profile.skills.map((s) => s.skillId),
   );
 
-  const districtsQ = useQuery({
-    queryKey: ["geo-districts"],
-    queryFn: () => bffJson<CatalogItem[]>(proxyPath("geo/districts")),
-  });
-  const skillsQ = useQuery({
-    queryKey: ["skills"],
-    queryFn: () => bffJson<CatalogItem[]>(proxyPath("skills")),
-  });
+  const districtsQ = useQuery(geoDistrictsQueryOptions);
+  const skillsQ = useQuery(skillsQueryOptions);
   const citiesQ = useQuery({
     queryKey: ["geo-cities", districtId],
     enabled: Boolean(districtId),

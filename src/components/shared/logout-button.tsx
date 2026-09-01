@@ -28,7 +28,6 @@ export function LogoutButton() {
         }
         queryClient.clear();
         router.replace("/login");
-        router.refresh();
       }}
     >
       {t("logout")}

@@ -8,11 +8,11 @@ import { EmployerPageHeader } from "@/components/employer/employer-page-header";
 import { ErrorState } from "@/components/shared/error-state";
 import { LoadingState } from "@/components/shared/loading-state";
 import { useBffErrorMessage } from "@/components/shared/status-badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "@/i18n/navigation";
 import { bffJson, proxyPath } from "@/lib/api/bff-client";
+import { geoDistrictsQueryOptions, skillsQueryOptions } from "@/lib/query/catalog";
+import { cn } from "@/lib/utils";
 import type { CatalogItem, EmployerJob } from "@/types/ham";
 
 const JOB_TYPES = [
@@ -77,15 +77,36 @@ function seedFromJob(job: EmployerJob): FormSeed {
 }
 
 export function EmployerJobForm({ mode, jobId }: Props) {
+  const t = useTranslations("employer");
   const jobQ = useQuery({
     queryKey: ["employer-job", jobId],
     enabled: mode === "edit" && Boolean(jobId),
     queryFn: () => bffJson<EmployerJob>(proxyPath(`employer/jobs/${jobId}`)),
   });
+  useQuery(geoDistrictsQueryOptions);
+  useQuery(skillsQueryOptions);
 
-  if (mode === "edit" && jobQ.isLoading) return <LoadingState />;
+  if (mode === "edit" && jobQ.isPending && !jobQ.data) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        <EmployerPageHeader
+          title={t("editJob")}
+          subtitle={t("jobFormSubtitle")}
+        />
+        <LoadingState />
+      </div>
+    );
+  }
   if (mode === "edit" && (jobQ.error || !jobQ.data)) {
-    return <ErrorState onRetry={() => void jobQ.refetch()} />;
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        <EmployerPageHeader
+          title={t("editJob")}
+          subtitle={t("jobFormSubtitle")}
+        />
+        <ErrorState onRetry={() => void jobQ.refetch()} />
+      </div>
+    );
   }
 
   const seed = mode === "edit" && jobQ.data ? seedFromJob(jobQ.data) : EMPTY_SEED;
@@ -114,6 +135,7 @@ function JobFormFields({
   seed: FormSeed;
 }) {
   const t = useTranslations("employer");
+  const tc = useTranslations("common");
   const errMsg = useBffErrorMessage();
   const router = useRouter();
 
@@ -128,12 +150,11 @@ function JobFormFields({
   const [wageMin, setWageMin] = useState(seed.wageMin);
   const [wageMax, setWageMax] = useState(seed.wageMax);
   const [wagePeriod, setWagePeriod] = useState(seed.wagePeriod);
+  const [step, setStep] = useState(0);
+  const [facilities, setFacilities] = useState<string[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const districtsQ = useQuery({
-    queryKey: ["geo-districts"],
-    queryFn: () => bffJson<CatalogItem[]>(proxyPath("geo/districts")),
-  });
+  const districtsQ = useQuery(geoDistrictsQueryOptions);
   const citiesQ = useQuery({
     queryKey: ["geo-cities", districtId],
     enabled: Boolean(districtId),
@@ -146,10 +167,7 @@ function JobFormFields({
     queryFn: () =>
       bffJson<CatalogItem[]>(proxyPath(`geo/cities/${cityId}/areas`)),
   });
-  const skillsQ = useQuery({
-    queryKey: ["skills"],
-    queryFn: () => bffJson<CatalogItem[]>(proxyPath("skills")),
-  });
+  const skillsQ = useQuery(skillsQueryOptions);
 
   function buildBody(status?: "DRAFT" | "PUBLISHED") {
     const wageMinPaise = wageMin
@@ -158,9 +176,13 @@ function JobFormFields({
     const wageMaxPaise = wageMax
       ? Math.round(Number(wageMax) * 100)
       : undefined;
+    const facilityLine =
+      facilities.length > 0
+        ? `${t("facilitiesProvided")}: ${facilities.join(", ")}\n\n`
+        : "";
     return {
       title,
-      description,
+      description: `${facilityLine}${description}`,
       jobType,
       districtId,
       cityId: cityId || undefined,
@@ -197,219 +219,331 @@ function JobFormFields({
   });
 
   const canSubmit = Boolean(title && description && districtId);
+  const STEPS = [
+    t("stepJobBasics"),
+    t("stepWorkDetails"),
+    t("stepLocation"),
+    t("stepFacilities"),
+    t("stepReview"),
+  ];
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <EmployerPageHeader
-        title={mode === "create" ? t("createJob") : t("editJob")}
-        subtitle={t("jobFormSubtitle")}
-      />
-      <p className="text-sm text-[var(--emp-muted)]">{t("paymentsNote")}</p>
+    <div className="mx-auto max-w-3xl space-y-8">
+      <div>
+        <h1 className="text-[2rem] font-bold leading-10">
+          {mode === "create" ? t("postNewJob") : t("editJob")}
+        </h1>
+        <p className="mt-1 text-base text-[var(--emp-muted)]">
+          {t("jobStepHint", { step: step + 1, total: 5, name: STEPS[step] })}
+        </p>
+      </div>
 
-      <section className="ham-employer__panel space-y-4">
-        <h2 className="text-base font-semibold">{t("sectionBasic")}</h2>
-        <div className="space-y-2">
-          <Label htmlFor="job-title">{t("title")}</Label>
-          <Input
-            id="job-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
+      <div className="ham-employer__stepper">
+        <div className="ham-employer__stepper-line" aria-hidden>
+          <span style={{ width: `${(step / 4) * 100}%` }} />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="job-desc">{t("description")}</Label>
-          <textarea
-            id="job-desc"
-            className="min-h-28 w-full rounded-md border border-input px-3 py-2 text-sm"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="job-type">{t("jobTypeLabel")}</Label>
-            <select
-              id="job-type"
-              className="flex h-10 w-full rounded-md border border-input px-3 text-sm"
-              value={jobType}
-              onChange={(e) => setJobType(e.target.value)}
-            >
-              {JOB_TYPES.map((v) => (
-                <option key={v} value={v}>
-                  {t(`jobType.${v}`)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="vacancies">{t("vacancies")}</Label>
-            <Input
-              id="vacancies"
-              type="number"
-              min={1}
-              value={vacancies}
-              onChange={(e) => setVacancies(e.target.value)}
-            />
-          </div>
-        </div>
-      </section>
+        {STEPS.map((label, i) => (
+          <button
+            key={label}
+            type="button"
+            className={cn(
+              "ham-employer__step",
+              i === step && "ham-employer__step--on",
+              i < step && "ham-employer__step--done",
+            )}
+            onClick={() => setStep(i)}
+          >
+            <span>{i + 1}</span>
+            <span className="hidden text-center text-xs font-semibold uppercase tracking-wide sm:block">
+              {label}
+            </span>
+          </button>
+        ))}
+      </div>
 
-      <section className="ham-employer__panel space-y-4">
-        <h2 className="text-base font-semibold">{t("sectionRequirements")}</h2>
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium">{t("skills")}</legend>
-          <div className="max-h-44 overflow-y-auto rounded-md border p-2">
-            {(skillsQ.data ?? []).map((s) => (
-              <label key={s.id} className="flex items-center gap-2 py-1 text-sm">
-                <input
-                  type="checkbox"
-                  checked={skillIds.includes(s.id)}
-                  onChange={(e) =>
-                    setSkillIds((prev) =>
-                      e.target.checked
-                        ? [...prev, s.id]
-                        : prev.filter((id) => id !== s.id),
-                    )
-                  }
-                />
-                {s.name}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      </section>
-
-      <section className="ham-employer__panel space-y-4">
-        <h2 className="text-base font-semibold">{t("sectionLocation")}</h2>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label>{t("district")}</Label>
-            <select
-              className="flex h-10 w-full rounded-md border border-input px-3 text-sm"
-              value={districtId}
-              onChange={(e) => {
-                setDistrictId(e.target.value);
-                setCityId("");
-                setAreaId("");
-              }}
-            >
-              <option value="">—</option>
-              {(districtsQ.data ?? []).map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label>{t("city")}</Label>
-            <select
-              className="flex h-10 w-full rounded-md border border-input px-3 text-sm"
-              value={cityId}
-              disabled={!districtId}
-              onChange={(e) => {
-                setCityId(e.target.value);
-                setAreaId("");
-              }}
-            >
-              <option value="">—</option>
-              {(citiesQ.data ?? []).map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label>{t("area")}</Label>
-            <select
-              className="flex h-10 w-full rounded-md border border-input px-3 text-sm"
-              value={areaId}
-              disabled={!cityId}
-              onChange={(e) => setAreaId(e.target.value)}
-            >
-              <option value="">—</option>
-              {(areasQ.data ?? []).map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </section>
-
-      <section className="ham-employer__panel space-y-4">
-        <h2 className="text-base font-semibold">{t("sectionCompensation")}</h2>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label>{t("wageMin")}</Label>
-            <Input
-              type="number"
-              min={0}
-              value={wageMin}
-              onChange={(e) => setWageMin(e.target.value)}
-              placeholder="₹"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>{t("wageMax")}</Label>
-            <Input
-              type="number"
-              min={0}
-              value={wageMax}
-              onChange={(e) => setWageMax(e.target.value)}
-              placeholder="₹"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>{t("wagePeriod")}</Label>
-            <select
-              className="flex h-10 w-full rounded-md border border-input px-3 text-sm"
-              value={wagePeriod}
-              onChange={(e) => setWagePeriod(e.target.value)}
-            >
-              <option value="">—</option>
-              {WAGE_PERIODS.map((p) => (
-                <option key={p} value={p}>
-                  {t(`wagePeriodLabel.${p}`)}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </section>
-
-      {msg ? <p className="text-sm text-destructive">{msg}</p> : null}
-
-      <div className="flex flex-wrap gap-2">
-        {mode === "create" ? (
+      <section className="ham-employer__card space-y-4 p-6">
+        {step === 0 ? (
           <>
-            <Button
+            <h2 className="text-lg font-semibold">{t("sectionBasic")}</h2>
+            <p className="text-sm text-[var(--emp-muted)]">{t("jobBasicsHelp")}</p>
+            <div className="space-y-2">
+              <Label htmlFor="job-title">{t("title")} *</Label>
+              <input
+                id="job-title"
+                className="ham-employer__input"
+                placeholder={t("jobTitlePlaceholder")}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="job-type">{t("jobCategory")} *</Label>
+                <select
+                  id="job-type"
+                  className="ham-employer__input"
+                  value={jobType}
+                  onChange={(e) => setJobType(e.target.value)}
+                >
+                  {JOB_TYPES.map((v) => (
+                    <option key={v} value={v}>
+                      {t(`jobType.${v}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vacancies">{t("vacancies")} *</Label>
+                <input
+                  id="vacancies"
+                  className="ham-employer__input"
+                  type="number"
+                  min={1}
+                  value={vacancies}
+                  onChange={(e) => setVacancies(e.target.value)}
+                />
+              </div>
+            </div>
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">{t("skills")} *</legend>
+              <p className="text-xs text-[var(--emp-muted)]">{t("skillsHelp")}</p>
+              <div className="flex flex-wrap gap-2">
+                {(skillsQ.data ?? []).slice(0, 24).map((s) => {
+                  const on = skillIds.includes(s.id);
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className={cn(
+                        "rounded-full border px-3 py-1 text-sm",
+                        on
+                          ? "border-[var(--emp-primary)] bg-[var(--emp-primary-light)] text-[var(--emp-primary-dark)]"
+                          : "border-[var(--emp-border)]",
+                      )}
+                      onClick={() =>
+                        setSkillIds((prev) =>
+                          on ? prev.filter((id) => id !== s.id) : [...prev, s.id],
+                        )
+                      }
+                    >
+                      {s.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+            <div className="space-y-2">
+              <Label htmlFor="job-desc">{t("briefSummary")}</Label>
+              <textarea
+                id="job-desc"
+                className="ham-employer__input"
+                placeholder={t("briefSummaryPlaceholder")}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+          </>
+        ) : null}
+
+        {step === 1 ? (
+          <>
+            <h2 className="text-lg font-semibold">{t("sectionCompensation")}</h2>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label>{t("wageMin")}</Label>
+                <input
+                  className="ham-employer__input"
+                  type="number"
+                  min={0}
+                  value={wageMin}
+                  onChange={(e) => setWageMin(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("wageMax")}</Label>
+                <input
+                  className="ham-employer__input"
+                  type="number"
+                  min={0}
+                  value={wageMax}
+                  onChange={(e) => setWageMax(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("wagePeriod")}</Label>
+                <select
+                  className="ham-employer__input"
+                  value={wagePeriod}
+                  onChange={(e) => setWagePeriod(e.target.value)}
+                >
+                  <option value="">—</option>
+                  {WAGE_PERIODS.map((p) => (
+                    <option key={p} value={p}>
+                      {t(`wagePeriodLabel.${p}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        {step === 2 ? (
+          <>
+            <h2 className="text-lg font-semibold">{t("sectionLocation")}</h2>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label>{t("district")} *</Label>
+                <select
+                  className="ham-employer__input"
+                  value={districtId}
+                  onChange={(e) => {
+                    setDistrictId(e.target.value);
+                    setCityId("");
+                    setAreaId("");
+                  }}
+                >
+                  <option value="">—</option>
+                  {(districtsQ.data ?? []).map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("city")}</Label>
+                <select
+                  className="ham-employer__input"
+                  value={cityId}
+                  disabled={!districtId}
+                  onChange={(e) => {
+                    setCityId(e.target.value);
+                    setAreaId("");
+                  }}
+                >
+                  <option value="">—</option>
+                  {(citiesQ.data ?? []).map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("area")}</Label>
+                <select
+                  className="ham-employer__input"
+                  value={areaId}
+                  disabled={!cityId}
+                  onChange={(e) => setAreaId(e.target.value)}
+                >
+                  <option value="">—</option>
+                  {(areasQ.data ?? []).map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        {step === 3 ? (
+          <>
+            <h2 className="text-lg font-semibold">{t("facilitiesProvided")}</h2>
+            <p className="text-sm text-[var(--emp-muted)]">{t("facilitiesHelp")}</p>
+            {[t("facilityTransport"), t("facilityFood"), t("facilityMedical")].map(
+              (label) => (
+                <label key={label} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={facilities.includes(label)}
+                    onChange={(e) =>
+                      setFacilities((prev) =>
+                        e.target.checked
+                          ? [...prev, label]
+                          : prev.filter((x) => x !== label),
+                      )
+                    }
+                  />
+                  {label}
+                </label>
+              ),
+            )}
+          </>
+        ) : null}
+
+        {step === 4 ? (
+          <>
+            <h2 className="text-lg font-semibold">{t("stepReview")}</h2>
+            <dl className="space-y-2 text-sm">
+              <div>
+                <dt className="text-[var(--emp-muted)]">{t("title")}</dt>
+                <dd className="font-semibold">{title || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-[var(--emp-muted)]">{t("jobTypeLabel")}</dt>
+                <dd>{t(`jobType.${jobType}` as "jobType.FULL_TIME")}</dd>
+              </div>
+              <div>
+                <dt className="text-[var(--emp-muted)]">{t("vacancies")}</dt>
+                <dd>{vacancies}</dd>
+              </div>
+              <div>
+                <dt className="text-[var(--emp-muted)]">{t("description")}</dt>
+                <dd className="whitespace-pre-wrap">{description || "—"}</dd>
+              </div>
+            </dl>
+          </>
+        ) : null}
+      </section>
+
+      {msg ? <p className="text-sm text-[var(--emp-error)]">{msg}</p> : null}
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button
+          type="button"
+          className="ham-employer__btn ham-employer__btn--ghost"
+          onClick={() => (step === 0 ? router.push("/employer/jobs") : setStep((s) => s - 1))}
+        >
+          {step === 0 ? tc("cancel") : tc("back")}
+        </button>
+        <div className="flex flex-wrap gap-2">
+          {mode === "create" ? (
+            <button
               type="button"
-              variant="outline"
+              className="ham-employer__btn ham-employer__btn--secondary"
               disabled={!canSubmit || saveMut.isPending}
               onClick={() => saveMut.mutate("DRAFT")}
             >
+              {saveMut.isPending ? <span className="ham-employer__spinner" /> : null}
               {t("draft")}
-            </Button>
-            <Button
+            </button>
+          ) : null}
+          {step < 4 ? (
+            <button
               type="button"
-              disabled={!canSubmit || saveMut.isPending}
-              onClick={() => saveMut.mutate("PUBLISHED")}
+              className="ham-employer__btn ham-employer__btn--primary"
+              onClick={() => setStep((s) => s + 1)}
             >
-              {t("publish")}
-            </Button>
-          </>
-        ) : (
-          <Button
-            type="button"
-            disabled={!canSubmit || saveMut.isPending}
-            onClick={() => saveMut.mutate(undefined)}
-          >
-            {t("saveChanges")}
-          </Button>
-        )}
+              {tc("next")}: {STEPS[step + 1]}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="ham-employer__btn ham-employer__btn--primary"
+              disabled={!canSubmit || saveMut.isPending}
+              onClick={() =>
+                saveMut.mutate(mode === "create" ? "PUBLISHED" : undefined)
+              }
+            >
+              {saveMut.isPending ? <span className="ham-employer__spinner" /> : null}
+              {mode === "create" ? t("publish") : t("saveChanges")}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

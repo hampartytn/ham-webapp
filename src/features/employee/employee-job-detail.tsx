@@ -42,9 +42,21 @@ export function EmployeeJobDetail({ jobId }: { jobId: string }) {
     onError: (e) => setMessage(errMsg(e)),
   });
 
-  if (jobQ.isLoading) return <LoadingState />;
+  if (jobQ.isPending && !jobQ.data) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        <h1 className="text-2xl font-semibold">{t("findJobs")}</h1>
+        <LoadingState />
+      </div>
+    );
+  }
   if (jobQ.error || !jobQ.data) {
-    return <ErrorState onRetry={() => void jobQ.refetch()} />;
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        <h1 className="text-2xl font-semibold">{t("findJobs")}</h1>
+        <ErrorState onRetry={() => void jobQ.refetch()} />
+      </div>
+    );
   }
 
   const job = jobQ.data;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -28,6 +28,7 @@ export function EmployeeApplicationsList() {
 
   const listQ = useQuery({
     queryKey: ["applications", page],
+    placeholderData: keepPreviousData,
     queryFn: () =>
       bffEnvelope<ApplicationItem[], OffsetMeta>(
         proxyPath("applications", { page, limit: 20 }),
@@ -47,9 +48,6 @@ export function EmployeeApplicationsList() {
     onError: (e) => setError(errMsg(e)),
   });
 
-  if (listQ.isLoading) return <LoadingState />;
-  if (listQ.error) return <ErrorState onRetry={() => void listQ.refetch()} />;
-
   const items = listQ.data?.data ?? [];
   const meta = listQ.data?.meta;
   const totalPages = meta
@@ -59,6 +57,12 @@ export function EmployeeApplicationsList() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">{t("myApplications")}</h1>
+      {listQ.isPending && !listQ.data ? (
+        <LoadingState />
+      ) : listQ.error ? (
+        <ErrorState onRetry={() => void listQ.refetch()} />
+      ) : (
+        <>
       {error ? (
         <p className="text-sm text-destructive" role="alert">
           {error}
@@ -99,6 +103,8 @@ export function EmployeeApplicationsList() {
           onNext={() => setPage((p) => p + 1)}
         />
       ) : null}
+        </>
+      )}
 
       <ConfirmDialog
         open={Boolean(withdrawId)}

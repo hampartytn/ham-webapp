@@ -98,6 +98,7 @@ async function maybeRefreshCookies(
       accessToken: pair.accessToken,
       refreshToken: pair.refreshToken,
       expiresIn: pair.expiresIn,
+      role: pair.user.role,
     })) {
       res.headers.append("Set-Cookie", header);
     }

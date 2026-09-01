@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -15,6 +15,7 @@ import {
   type OffsetMeta,
   proxyPath,
 } from "@/lib/api/bff-client";
+import { geoDistrictsQueryOptions } from "@/lib/query/catalog";
 import type { CatalogItem, LegalProvider } from "@/types/ham";
 
 export function EmployeeLegalDirectory() {
@@ -24,10 +25,7 @@ export function EmployeeLegalDirectory() {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string | null>(null);
 
-  const districtsQ = useQuery({
-    queryKey: ["geo-districts"],
-    queryFn: () => bffJson<CatalogItem[]>(proxyPath("geo/districts")),
-  });
+  const districtsQ = useQuery(geoDistrictsQueryOptions);
   const catsQ = useQuery({
     queryKey: ["legal-categories"],
     queryFn: () =>
@@ -37,6 +35,7 @@ export function EmployeeLegalDirectory() {
   const listQ = useQuery({
     queryKey: ["legal-providers", districtId, categoryId, page],
     enabled: Boolean(districtId),
+    placeholderData: keepPreviousData,
     queryFn: () =>
       bffEnvelope<LegalProvider[], OffsetMeta>(
         proxyPath("legal-support/providers", {
@@ -106,11 +105,11 @@ export function EmployeeLegalDirectory() {
       {!districtId ? (
         <p className="text-sm text-muted-foreground">{t("searchProviders")}</p>
       ) : null}
-      {listQ.isLoading ? <LoadingState /> : null}
+      {listQ.isPending && !listQ.data ? <LoadingState /> : null}
       {listQ.error ? (
         <ErrorState onRetry={() => void listQ.refetch()} />
       ) : null}
-      {districtId && !listQ.isLoading && items.length === 0 ? (
+      {districtId && !listQ.isPending && items.length === 0 ? (
         <EmptyState />
       ) : null}
 

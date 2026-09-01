@@ -7,18 +7,19 @@ import { ErrorState } from "@/components/shared/error-state";
 import { LoadingState } from "@/components/shared/loading-state";
 import { Link } from "@/i18n/navigation";
 import { bffJson, proxyPath } from "@/lib/api/bff-client";
+import { ME_QUERY_KEY, ME_STALE_MS } from "@/lib/query/session-cache";
 import type { MeResponse } from "@/types/ham";
 
 export function EmployeeDashboard() {
   const t = useTranslations("employee");
   const ts = useTranslations("shell");
-  const { data, error, isLoading, refetch } = useQuery({
-    queryKey: ["me"],
+  const { data, error, isPending, refetch } = useQuery({
+    queryKey: ME_QUERY_KEY,
     queryFn: () => bffJson<MeResponse>(proxyPath("me")),
+    staleTime: ME_STALE_MS,
   });
 
-  if (isLoading) return <LoadingState />;
-  if (error || !data) {
+  if (error && !data) {
     return (
       <ErrorState
         code={error && "code" in error ? String((error as { code?: string }).code) : undefined}
@@ -27,16 +28,22 @@ export function EmployeeDashboard() {
     );
   }
 
-  const o = data.onboarding;
+  const o = data?.onboarding;
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">{t("dashboardTitle")}</h1>
         <p className="text-muted-foreground">
-          {ts("sessionPhone", { phone: data.phone })}
+          {data ? ts("sessionPhone", { phone: data.phone }) : "\u00a0"}
         </p>
       </div>
+      {isPending && !data ? (
+        <LoadingState />
+      ) : !data || !o ? (
+        <ErrorState onRetry={() => void refetch()} />
+      ) : (
+        <>
       <section className="space-y-2">
         <h2 className="text-lg font-medium">{t("onboarding")}</h2>
         <ul className="space-y-1 text-sm">
@@ -66,6 +73,8 @@ export function EmployeeDashboard() {
           {t("membershipTitle")}
         </Link>
       </div>
+        </>
+      )}
     </div>
   );
 }

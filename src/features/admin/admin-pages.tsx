@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
@@ -50,14 +50,15 @@ export function AdminDashboard() {
   });
   const permQ = useCanReadUsers();
 
-  if (sessionQ.isLoading) return <LoadingState />;
-  if (sessionQ.error) {
-    return <ErrorState code="FORBIDDEN" />;
-  }
-
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">{t("dashboardTitle")}</h1>
+      {sessionQ.isPending && !sessionQ.data ? (
+        <LoadingState />
+      ) : sessionQ.error ? (
+        <ErrorState code="FORBIDDEN" />
+      ) : (
+        <>
       <p className="text-sm">
         {t("sessionOk", { role: sessionQ.data?.role ?? "—" })}
       </p>
@@ -98,6 +99,8 @@ export function AdminDashboard() {
           </Link>
         </li>
       </ul>
+        </>
+      )}
     </div>
   );
 }
@@ -112,28 +115,12 @@ export function AdminUsersPage() {
   const listQ = useQuery({
     queryKey: ["admin-users", page, q],
     enabled: permQ.data === true,
+    placeholderData: keepPreviousData,
     queryFn: () =>
       bffEnvelope<AdminUser[], OffsetMeta>(
         proxyPath("admin/users", { page, limit: 20, q: q || undefined }),
       ),
   });
-
-  if (permQ.isLoading) return <LoadingState />;
-  if (permQ.data === false) {
-    return <ErrorState code="FORBIDDEN" message={t("noPermission")} />;
-  }
-  if (listQ.isLoading) return <LoadingState />;
-  if (listQ.error) {
-    return (
-      <ErrorState
-        code={
-          listQ.error instanceof BffError ? listQ.error.code : undefined
-        }
-        message={errMsg(listQ.error)}
-        onRetry={() => void listQ.refetch()}
-      />
-    );
-  }
 
   const items = listQ.data?.data ?? [];
   const meta = listQ.data?.meta;
@@ -144,6 +131,10 @@ export function AdminUsersPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">{t("usersTitle")}</h1>
+      {permQ.data === false ? (
+        <ErrorState code="FORBIDDEN" message={t("noPermission")} />
+      ) : (
+        <>
       <Input
         placeholder="Search phone/email"
         value={q}
@@ -152,6 +143,20 @@ export function AdminUsersPage() {
           setPage(1);
         }}
       />
+      {permQ.isPending && permQ.data === undefined ? (
+        <LoadingState />
+      ) : listQ.isPending && !listQ.data ? (
+        <LoadingState />
+      ) : listQ.error ? (
+        <ErrorState
+          code={
+            listQ.error instanceof BffError ? listQ.error.code : undefined
+          }
+          message={errMsg(listQ.error)}
+          onRetry={() => void listQ.refetch()}
+        />
+      ) : (
+        <>
       {items.length === 0 ? <EmptyState /> : null}
       <ul className="space-y-2">
         {items.map((u) => (
@@ -172,6 +177,10 @@ export function AdminUsersPage() {
           onNext={() => setPage((p) => p + 1)}
         />
       ) : null}
+        </>
+      )}
+        </>
+      )}
     </div>
   );
 }
@@ -205,9 +214,21 @@ export function AdminUserDetail({ userId }: { userId: string }) {
     onError: (e) => setMsg(errMsg(e)),
   });
 
-  if (userQ.isLoading) return <LoadingState />;
+  if (userQ.isPending && !userQ.data) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-semibold">{t("userDetail")}</h1>
+        <LoadingState />
+      </div>
+    );
+  }
   if (userQ.error || !userQ.data) {
-    return <ErrorState onRetry={() => void userQ.refetch()} />;
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-semibold">{t("userDetail")}</h1>
+        <ErrorState onRetry={() => void userQ.refetch()} />
+      </div>
+    );
   }
   const u = userQ.data;
 
@@ -255,6 +276,7 @@ export function AdminJobsPage() {
 
   const listQ = useQuery({
     queryKey: ["admin-jobs", page],
+    placeholderData: keepPreviousData,
     queryFn: () =>
       bffEnvelope<
         {
@@ -281,16 +303,6 @@ export function AdminJobsPage() {
     },
   });
 
-  if (listQ.isLoading) return <LoadingState />;
-  if (listQ.error) {
-    return (
-      <ErrorState
-        code={listQ.error instanceof BffError ? listQ.error.code : undefined}
-        message={errMsg(listQ.error)}
-      />
-    );
-  }
-
   const items = listQ.data?.data ?? [];
   const meta = listQ.data?.meta;
   const totalPages = meta
@@ -300,6 +312,15 @@ export function AdminJobsPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">{t("jobsTitle")}</h1>
+      {listQ.isPending && !listQ.data ? (
+        <LoadingState />
+      ) : listQ.error ? (
+        <ErrorState
+          code={listQ.error instanceof BffError ? listQ.error.code : undefined}
+          message={errMsg(listQ.error)}
+        />
+      ) : (
+        <>
       {items.length === 0 ? <EmptyState /> : null}
       <ul className="space-y-3">
         {items.map((j) => (
@@ -338,6 +359,8 @@ export function AdminJobsPage() {
           onNext={() => setPage((p) => p + 1)}
         />
       ) : null}
+        </>
+      )}
       <ConfirmDialog
         open={Boolean(confirm)}
         onOpenChange={(o) => !o && setConfirm(null)}
@@ -361,6 +384,7 @@ export function AdminLegalPage() {
 
   const listQ = useQuery({
     queryKey: ["admin-legal", page],
+    placeholderData: keepPreviousData,
     queryFn: () =>
       bffEnvelope<
         { id: string; name: string; approvalStatus: string }[],
@@ -379,16 +403,6 @@ export function AdminLegalPage() {
     },
   });
 
-  if (listQ.isLoading) return <LoadingState />;
-  if (listQ.error) {
-    return (
-      <ErrorState
-        code={listQ.error instanceof BffError ? listQ.error.code : undefined}
-        message={errMsg(listQ.error)}
-      />
-    );
-  }
-
   const items = listQ.data?.data ?? [];
   const meta = listQ.data?.meta;
   const totalPages = meta
@@ -398,6 +412,15 @@ export function AdminLegalPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">{t("legalTitle")}</h1>
+      {listQ.isPending && !listQ.data ? (
+        <LoadingState />
+      ) : listQ.error ? (
+        <ErrorState
+          code={listQ.error instanceof BffError ? listQ.error.code : undefined}
+          message={errMsg(listQ.error)}
+        />
+      ) : (
+        <>
       {items.length === 0 ? <EmptyState /> : null}
       <ul className="space-y-2">
         {items.map((p) => (
@@ -426,6 +449,8 @@ export function AdminLegalPage() {
           onNext={() => setPage((p) => p + 1)}
         />
       ) : null}
+        </>
+      )}
     </div>
   );
 }
@@ -445,20 +470,25 @@ export function AdminMetricsPage() {
     }));
   }, [metricsQ.data]);
 
-  if (metricsQ.isLoading) return <LoadingState />;
   if (metricsQ.error) {
     return (
-      <ErrorState
-        code={
-          metricsQ.error instanceof BffError ? metricsQ.error.code : undefined
-        }
-      />
+      <div className="space-y-4">
+        <h1 className="text-2xl font-semibold">{t("metricsTitle")}</h1>
+        <ErrorState
+          code={
+            metricsQ.error instanceof BffError ? metricsQ.error.code : undefined
+          }
+        />
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">{t("metricsTitle")}</h1>
+      {metricsQ.isPending && !metricsQ.data ? (
+        <LoadingState />
+      ) : (
       <ul className="space-y-2 text-sm">
         {rows.map((r) => (
           <li key={r.k}>
@@ -466,6 +496,7 @@ export function AdminMetricsPage() {
           </li>
         ))}
       </ul>
+      )}
     </div>
   );
 }
@@ -475,20 +506,12 @@ export function AdminAuditPage() {
   const [page, setPage] = useState(1);
   const listQ = useQuery({
     queryKey: ["admin-audit", page],
+    placeholderData: keepPreviousData,
     queryFn: () =>
       bffEnvelope<Record<string, unknown>[], OffsetMeta>(
         proxyPath("admin/audit-logs", { page, limit: 20 }),
       ),
   });
-
-  if (listQ.isLoading) return <LoadingState />;
-  if (listQ.error) {
-    return (
-      <ErrorState
-        code={listQ.error instanceof BffError ? listQ.error.code : undefined}
-      />
-    );
-  }
 
   const items = listQ.data?.data ?? [];
   const meta = listQ.data?.meta;
@@ -499,6 +522,14 @@ export function AdminAuditPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">{t("auditTitle")}</h1>
+      {listQ.isPending && !listQ.data ? (
+        <LoadingState />
+      ) : listQ.error ? (
+        <ErrorState
+          code={listQ.error instanceof BffError ? listQ.error.code : undefined}
+        />
+      ) : (
+        <>
       {items.length === 0 ? <EmptyState /> : null}
       <ul className="space-y-2 text-xs font-mono">
         {items.map((row, i) => (
@@ -516,6 +547,8 @@ export function AdminAuditPage() {
           onNext={() => setPage((p) => p + 1)}
         />
       ) : null}
+        </>
+      )}
     </div>
   );
 }

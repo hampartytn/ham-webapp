@@ -68,9 +68,21 @@ export function EmployeeMembershipPanel() {
     },
   });
 
-  if (memQ.isLoading) return <LoadingState />;
+  if (memQ.isPending && !memQ.data) {
+    return (
+      <div className="mx-auto max-w-lg space-y-6">
+        <h1 className="text-2xl font-semibold">{t("membershipTitle")}</h1>
+        <LoadingState />
+      </div>
+    );
+  }
   if (memQ.error || !memQ.data) {
-    return <ErrorState onRetry={() => void memQ.refetch()} />;
+    return (
+      <div className="mx-auto max-w-lg space-y-6">
+        <h1 className="text-2xl font-semibold">{t("membershipTitle")}</h1>
+        <ErrorState onRetry={() => void memQ.refetch()} />
+      </div>
+    );
   }
 
   const m = memQ.data;

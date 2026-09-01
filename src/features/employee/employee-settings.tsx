@@ -9,6 +9,7 @@ import { LogoutButton } from "@/components/shared/logout-button";
 import { PasswordSetForm } from "@/features/auth/components/password-set-form";
 import { Button } from "@/components/ui/button";
 import { useBffErrorMessage } from "@/components/shared/status-badge";
+import { applyPreferredLanguageCache } from "@/lib/query/session-cache";
 import { bffJson, proxyPath } from "@/lib/api/bff-client";
 import { useRouter } from "@/i18n/navigation";
 
@@ -30,10 +31,9 @@ export function EmployeeSettingsPanel() {
         method: "PATCH",
         body: JSON.stringify({ preferredLanguage: lang }),
       }),
-    onSuccess: async () => {
+    onSuccess: () => {
       setMsg(null);
-      await qc.invalidateQueries({ queryKey: ["me"] });
-      router.replace("/employee/settings", { locale: lang });
+      applyPreferredLanguageCache(qc, lang);
     },
     onError: (e) => setMsg(errMsg(e)),
   });
@@ -58,7 +58,11 @@ export function EmployeeSettingsPanel() {
           <Button
             type="button"
             disabled={saveLang.isPending}
-            onClick={() => saveLang.mutate()}
+            onClick={() => {
+              applyPreferredLanguageCache(qc, lang);
+              router.replace("/employee/settings", { locale: lang });
+              saveLang.mutate();
+            }}
           >
             {t("saveLanguage")}
           </Button>

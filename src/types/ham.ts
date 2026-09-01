@@ -49,7 +49,7 @@ export type CatalogItem = { id: string; code: string; name: string; categoryId?:
 export type PublicJob = {
   id: string;
   title: string;
-  description: string;
+  description?: string;
   jobType: string;
   status: string;
   districtId: string;
@@ -117,7 +117,8 @@ export type EmployerOrg = {
   activationStatus: string;
 };
 
-export type EmployerJob = PublicJob & {
+export type EmployerJob = Omit<PublicJob, "description"> & {
+  description: string;
   createdByUserId: string;
   closedAt: string | null;
   createdAt: string;

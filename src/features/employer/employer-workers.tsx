@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
@@ -17,7 +17,8 @@ import {
   type OffsetMeta,
   proxyPath,
 } from "@/lib/api/bff-client";
-import type { CatalogItem, WorkerCard } from "@/types/ham";
+import { geoDistrictsQueryOptions, skillsQueryOptions } from "@/lib/query/catalog";
+import type { WorkerCard } from "@/types/ham";
 
 const AVAILABILITY = ["", "AVAILABLE", "NOT_AVAILABLE", "AVAILABLE_FROM"] as const;
 
@@ -29,14 +30,8 @@ export function EmployerWorkers() {
   const [availabilityStatus, setAvailabilityStatus] = useState("");
   const [selected, setSelected] = useState<WorkerCard | null>(null);
 
-  const districtsQ = useQuery({
-    queryKey: ["geo-districts"],
-    queryFn: () => bffJson<CatalogItem[]>(proxyPath("geo/districts")),
-  });
-  const skillsQ = useQuery({
-    queryKey: ["skills"],
-    queryFn: () => bffJson<CatalogItem[]>(proxyPath("skills")),
-  });
+  const districtsQ = useQuery(geoDistrictsQueryOptions);
+  const skillsQ = useQuery(skillsQueryOptions);
 
   const districtName = useMemo(() => {
     const map = new Map<string, string>();
@@ -46,6 +41,7 @@ export function EmployerWorkers() {
 
   const listQ = useQuery({
     queryKey: ["workers", page, districtId, skillId, availabilityStatus],
+    placeholderData: keepPreviousData,
     queryFn: () =>
       bffEnvelope<WorkerCard[], OffsetMeta>(
         proxyPath("employer/workers", {
@@ -67,7 +63,7 @@ export function EmployerWorkers() {
   return (
     <div className="space-y-5">
       <EmployerPageHeader
-        title={t("workersTitle")}
+        title={t("navEmployees")}
         subtitle={t("workersSubtitle")}
       />
       <p className="text-sm text-[var(--emp-muted)]">{t("privacyNote")}</p>
@@ -76,7 +72,7 @@ export function EmployerWorkers() {
         <div className="space-y-1">
           <label className="text-sm font-medium">{t("district")}</label>
           <select
-            className="h-10 w-full rounded-md border border-input px-3 text-sm"
+            className="ham-employer__input"
             value={districtId}
             onChange={(e) => {
               setDistrictId(e.target.value);
@@ -94,7 +90,7 @@ export function EmployerWorkers() {
         <div className="space-y-1">
           <label className="text-sm font-medium">{t("skills")}</label>
           <select
-            className="h-10 w-full rounded-md border border-input px-3 text-sm"
+            className="ham-employer__input"
             value={skillId}
             onChange={(e) => {
               setSkillId(e.target.value);
@@ -112,7 +108,7 @@ export function EmployerWorkers() {
         <div className="space-y-1">
           <label className="text-sm font-medium">{t("availabilityLabel")}</label>
           <select
-            className="h-10 w-full rounded-md border border-input px-3 text-sm"
+            className="ham-employer__input"
             value={availabilityStatus}
             onChange={(e) => {
               setAvailabilityStatus(e.target.value);
@@ -130,7 +126,7 @@ export function EmployerWorkers() {
         </div>
       </div>
 
-      {listQ.isLoading ? (
+      {listQ.isPending && !listQ.data ? (
         <LoadingState />
       ) : listQ.error ? (
         <ErrorState onRetry={() => void listQ.refetch()} />
@@ -142,7 +138,7 @@ export function EmployerWorkers() {
             <li key={w.id}>
               <button
                 type="button"
-                className="ham-employer__panel h-full w-full text-left transition hover:border-primary/40"
+                className="ham-employer__card h-full w-full p-5 text-left transition-shadow hover:shadow-md"
                 onClick={() => setSelected(w)}
               >
                 <div className="flex items-start justify-between gap-2">

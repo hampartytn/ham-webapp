@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { nestFetchData } from "@/lib/api/nest-client";
 import { NestApiError } from "@/lib/api/types";
 import type { AuthTokenPair, AuthUserView } from "@/lib/api/types";
@@ -12,8 +14,9 @@ import {
 /**
  * Read-only session for Server Components / layouts.
  * Does not refresh or mutate cookies (Next forbids Set-Cookie during RSC render).
+ * React.cache dedupes within a single RSC request (layout + header).
  */
-export async function getServerSession(): Promise<AuthUserView | null> {
+export const getServerSession = cache(async (): Promise<AuthUserView | null> => {
   const access = await readAccessToken();
   if (!access) return null;
 
@@ -31,7 +34,7 @@ export async function getServerSession(): Promise<AuthUserView | null> {
     }
     return null;
   }
-}
+});
 
 /**
  * Full restore for Route Handlers only — may refresh and set cookies.
@@ -87,6 +90,7 @@ async function refreshTokens(
       accessToken: pair.accessToken,
       refreshToken: pair.refreshToken,
       expiresIn: pair.expiresIn,
+      role: pair.user.role,
     });
     return pair;
   } catch {

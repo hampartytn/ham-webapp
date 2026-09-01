@@ -22,11 +22,11 @@ export function EmployerPageHeader({
       )}
     >
       <div className="min-w-0 space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-[var(--emp-ink,#1c1412)]">
+        <h1 className="text-[2rem] font-bold leading-10 tracking-tight text-[var(--emp-ink)]">
           {title}
         </h1>
         {subtitle ? (
-          <p className="text-sm text-[var(--emp-muted,#6b5e5a)]">{subtitle}</p>
+          <p className="mt-1 text-base text-[var(--emp-muted)]">{subtitle}</p>
         ) : null}
       </div>
       {actions ? (
@@ -63,7 +63,7 @@ export function EmployerStatCard({
           </span>
         ) : null}
       </div>
-      <p className="ham-employer__stat-value mt-1">{value}</p>
+      <p className="mt-1 text-[2rem] font-bold leading-10 text-[var(--emp-ink)]">{value}</p>
       {hint ? (
         <p className="mt-1 text-xs text-[var(--emp-muted,#6b5e5a)]">{hint}</p>
       ) : null}
@@ -71,9 +71,9 @@ export function EmployerStatCard({
   );
 
   const className = cn(
-    "ham-employer__stat",
-    emphasis && "ham-employer__stat--emphasis",
-    href && "ham-employer__stat--link",
+    "ham-employer__card p-6",
+    emphasis && "ring-1 ring-[var(--emp-primary-light)]",
+    href && "transition-shadow hover:shadow-md",
   );
 
   if (href) {
@@ -101,7 +101,7 @@ export function EmployerPanel({
   className?: string;
 }) {
   return (
-    <section className={cn("ham-employer__panel", className)}>
+    <section className={cn("ham-employer__card p-6", className)}>
       {title || action || subtitle ? (
         <div className="mb-3 flex items-start justify-between gap-2">
           <div className="min-w-0">

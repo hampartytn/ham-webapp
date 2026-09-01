@@ -1,9 +1,15 @@
 import type { ReactNode } from "react";
-import { redirect } from "next/navigation";
+import { Inter } from "next/font/google";
 
+import { AccountStatusGate } from "@/components/layout/account-status-gate";
 import { EmployerShell } from "@/components/layout/employer-shell";
-import { getServerSession } from "@/lib/auth/session";
-import { ErrorState } from "@/components/shared/error-state";
+import { assertRoleLayoutAccess } from "@/lib/auth/layout-auth";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-employer-sans",
+  display: "swap",
+});
 
 type Props = {
   children: ReactNode;
@@ -12,30 +18,13 @@ type Props = {
 
 export default async function EmployerLayout({ children, params }: Props) {
   const { locale } = await params;
-  const session = await getServerSession();
+  await assertRoleLayoutAccess(locale, ["EMPLOYER"], "/employer");
 
-  if (!session) {
-    redirect(`/${locale}/login?next=/${locale}/employer`);
-  }
-
-  if (session.role !== "EMPLOYER") {
-    redirect(`/${locale}/forbidden`);
-  }
-
-  if (
-    session.accountStatus === "SUSPENDED" ||
-    session.accountStatus === "BLOCKED"
-  ) {
-    return (
-      <ErrorState
-        code={
-          session.accountStatus === "SUSPENDED"
-            ? "ACCOUNT_SUSPENDED"
-            : "ACCOUNT_BLOCKED"
-        }
-      />
-    );
-  }
-
-  return <EmployerShell>{children}</EmployerShell>;
+  return (
+    <div className={`${inter.variable} ${inter.className}`}>
+      <EmployerShell>
+        <AccountStatusGate>{children}</AccountStatusGate>
+      </EmployerShell>
+    </div>
+  );
 }

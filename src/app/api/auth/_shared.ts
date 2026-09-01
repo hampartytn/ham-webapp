@@ -42,6 +42,7 @@ export async function issueSessionResponse(
     accessToken: pair.accessToken,
     refreshToken: pair.refreshToken,
     expiresIn: pair.expiresIn,
+    role: pair.user.role,
   });
   return Response.json({
     data: {

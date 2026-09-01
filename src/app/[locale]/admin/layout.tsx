@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
-import { redirect } from "next/navigation";
 
+import { AccountStatusGate } from "@/components/layout/account-status-gate";
 import { AdminShell } from "@/components/layout/admin-shell";
-import { getServerSession } from "@/lib/auth/session";
-import { ErrorState } from "@/components/shared/error-state";
+import { assertRoleLayoutAccess } from "@/lib/auth/layout-auth";
 
 type Props = {
   children: ReactNode;
@@ -12,30 +11,11 @@ type Props = {
 
 export default async function AdminLayout({ children, params }: Props) {
   const { locale } = await params;
-  const session = await getServerSession();
+  await assertRoleLayoutAccess(locale, ["ADMIN", "SUPER_ADMIN"], "/admin");
 
-  if (!session) {
-    redirect(`/${locale}/login?next=/${locale}/admin`);
-  }
-
-  if (session.role !== "ADMIN" && session.role !== "SUPER_ADMIN") {
-    redirect(`/${locale}/forbidden`);
-  }
-
-  if (
-    session.accountStatus === "SUSPENDED" ||
-    session.accountStatus === "BLOCKED"
-  ) {
-    return (
-      <ErrorState
-        code={
-          session.accountStatus === "SUSPENDED"
-            ? "ACCOUNT_SUSPENDED"
-            : "ACCOUNT_BLOCKED"
-        }
-      />
-    );
-  }
-
-  return <AdminShell>{children}</AdminShell>;
+  return (
+    <AdminShell>
+      <AccountStatusGate>{children}</AccountStatusGate>
+    </AdminShell>
+  );
 }
