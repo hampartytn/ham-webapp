@@ -19,8 +19,12 @@ import { EmployerBadge, jobBadgeTone } from "@/components/employer/employer-badg
 import { ErrorState } from "@/components/shared/error-state";
 import { Link } from "@/i18n/navigation";
 import { EmployerDashboardSkeleton } from "@/features/employer/employer-dashboard-skeleton";
+import { ApplicationsTrendChart } from "@/features/employer/charts/applications-trend-chart";
+import { JobPerformanceChart } from "@/features/employer/charts/job-performance-chart";
+import { JobStatusChart } from "@/features/employer/charts/job-status-chart";
 import {
-  buildHiringBuckets,
+  buildApplicationTrendBuckets,
+  buildJobPerformanceRows,
   CHART_RANGES,
   countInWindow,
   dashboardDisplayName,
@@ -117,11 +121,38 @@ export function EmployerDashboard() {
   );
 
   const appTimestamps = recentApplicants.map((r) => r.application.createdAt);
-  const buckets = useMemo(
-    () => buildHiringBuckets(appTimestamps, chartRange, locale),
-    [appTimestamps, chartRange, locale],
+  const trendBuckets = useMemo(
+    () =>
+      buildApplicationTrendBuckets(
+        recentApplicants.map((r) => ({
+          createdAt: r.application.createdAt,
+          status: r.application.status,
+        })),
+        chartRange,
+        locale,
+      ),
+    [recentApplicants, chartRange, locale],
   );
-  const weekMax = Math.max(1, ...buckets.map((b) => b.count));
+  const performanceRows = useMemo(
+    () =>
+      buildJobPerformanceRows(
+        fetchJobs.length > 0 ? fetchJobs : pulseJobs,
+        applicationCounts,
+        recentApplicants,
+      ),
+    [fetchJobs, pulseJobs, applicationCounts, recentApplicants],
+  );
+  const appsLoading =
+    fetchJobs.length > 0 &&
+    applicantQueries.some((q) => q.isPending && !q.data);
+  const appsError =
+    fetchJobs.length > 0 &&
+    applicantQueries.every((q) => Boolean(q.error) && !q.data);
+  const retryApps = () => {
+    applicantQueries.forEach((q) => {
+      void q.refetch();
+    });
+  };
 
   const shortlisted = recentApplicants.filter(
     (r) => r.application.status === "SHORTLISTED",
@@ -247,10 +278,24 @@ export function EmployerDashboard() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="flex flex-col gap-6 lg:col-span-2">
-              <section className="ham-employer__card p-6">
-                <div className="mb-6 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">{t("hiringPerformance")}</h2>
+            <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
+              <ApplicationsTrendChart
+                title={t("hiringPerformance")}
+                summary={t("applicationsTrendSummary", {
+                  total: trendBuckets.reduce((sum, b) => sum + b.applications, 0),
+                })}
+                note={t("chartDataNote")}
+                emptyMessage={t("applicationsTrendEmpty")}
+                errorMessage={t("chartLoadError")}
+                retryLabel={t("chartRetry")}
+                seriesApplications={t("chartSeriesApplications")}
+                seriesShortlisted={t("chartSeriesShortlisted")}
+                seriesHired={t("chartSeriesHired")}
+                buckets={trendBuckets}
+                loading={appsLoading}
+                error={appsError}
+                onRetry={retryApps}
+                headerRight={
                   <div className="relative">
                     <button
                       type="button"
@@ -283,43 +328,23 @@ export function EmployerDashboard() {
                       </ul>
                     ) : null}
                   </div>
-                </div>
-                <div className="relative flex h-64 items-end justify-between gap-1 border-b border-[var(--emp-border)] pb-2">
-                  <div className="pointer-events-none absolute inset-0 flex flex-col justify-between py-2">
-                    <span className="block h-px w-full bg-[var(--emp-border)]/40" />
-                    <span className="block h-px w-full bg-[var(--emp-border)]/40" />
-                    <span className="block h-px w-full bg-[var(--emp-border)]/40" />
-                    <span className="block h-px w-full bg-[var(--emp-border)]/40" />
-                  </div>
-                  {buckets.map((b, i) => (
-                    <div
-                      key={`${b.label}-${i}`}
-                      className="group relative z-10 flex h-full min-w-0 flex-1 items-end"
-                    >
-                      <div
-                        className={cn(
-                          "w-full rounded-t-sm bg-[var(--emp-primary-light)] transition-colors hover:bg-[var(--emp-primary)]",
-                          b.count === Math.max(...buckets.map((x) => x.count)) &&
-                            b.count > 0 &&
-                            "bg-[var(--emp-primary)]",
-                        )}
-                        style={{ height: `${Math.max(8, (b.count / weekMax) * 100)}%` }}
-                      >
-                        <span className="pointer-events-none absolute -top-8 left-1/2 hidden -translate-x-1/2 rounded bg-[#0f172a] px-2 py-1 text-xs text-white group-hover:block">
-                          {b.count}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-2 flex justify-between gap-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--emp-muted)]">
-                  {buckets.map((b, i) => (
-                    <span key={`${b.label}-l-${i}`} className="min-w-0 flex-1 truncate text-center">
-                      {b.label}
-                    </span>
-                  ))}
-                </div>
-              </section>
+                }
+              />
+              <JobPerformanceChart
+                title={t("jobPerformance")}
+                summary={t("jobPerformanceSummary")}
+                note={t("chartDataNote")}
+                emptyMessage={t("jobPerformanceEmpty")}
+                errorMessage={t("chartLoadError")}
+                retryLabel={t("chartRetry")}
+                seriesApplications={t("chartSeriesApplications")}
+                seriesShortlisted={t("chartSeriesShortlisted")}
+                seriesHired={t("chartSeriesHired")}
+                rows={performanceRows}
+                loading={appsLoading}
+                error={appsError}
+                onRetry={retryApps}
+              />
 
               <section className="ham-employer__card overflow-hidden">
                 <div className="flex items-center justify-between border-b border-[var(--emp-border)] p-6">
@@ -374,7 +399,32 @@ export function EmployerDashboard() {
               </section>
             </div>
 
-            <section className="ham-employer__card flex h-full flex-col p-6">
+            <div className="flex min-w-0 flex-col gap-6">
+              <JobStatusChart
+                title={t("jobStatusMix")}
+                emptyMessage={t("jobStatusEmpty")}
+                errorMessage={t("chartLoadError")}
+                retryLabel={t("chartRetry")}
+                activeLabel={t("donutActiveLabel")}
+                counts={statusCounts}
+                labels={{
+                  PUBLISHED: t("statusActive"),
+                  DRAFT: t("status.DRAFT"),
+                  UNPUBLISHED: t("status.UNPUBLISHED"),
+                  CLOSED: t("status.CLOSED"),
+                }}
+                summary={t("jobStatusMixAria", {
+                  summary: t("jobStatusSummary", {
+                    active: statusCounts.PUBLISHED,
+                    total:
+                      statusCounts.PUBLISHED +
+                      statusCounts.DRAFT +
+                      statusCounts.UNPUBLISHED +
+                      statusCounts.CLOSED,
+                  }),
+                })}
+              />
+              <section className="ham-employer__card flex h-full flex-col p-6">
               <h2 className="mb-6 text-lg font-semibold">{t("recentActivity")}</h2>
               {activity.length === 0 ? (
                 <p className="text-sm text-[var(--emp-muted)]">{t("activityEmpty")}</p>
@@ -420,6 +470,7 @@ export function EmployerDashboard() {
                 {t("viewAllActivity")}
               </Link>
             </section>
+            </div>
           </div>
         </>
       )}

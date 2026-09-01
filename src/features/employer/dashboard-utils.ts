@@ -219,40 +219,58 @@ export function countInWindow(timestamps: string[], days: number): number {
   return timestamps.filter((t) => inRange(t, from)).length;
 }
 
-export function buildHiringBuckets(
-  timestamps: string[],
+export type ApplicationTrendBucket = {
+  label: string;
+  applications: number;
+  shortlisted: number;
+  hired: number;
+};
+
+function emptyTrendBucket(label: string): ApplicationTrendBucket {
+  return { label, applications: 0, shortlisted: 0, hired: 0 };
+}
+
+function addTrendRow(bucket: ApplicationTrendBucket, status: string) {
+  bucket.applications += 1;
+  if (status === "SHORTLISTED") bucket.shortlisted += 1;
+  if (status === "HIRED") bucket.hired += 1;
+}
+
+export function buildApplicationTrendBuckets(
+  rows: { createdAt: string; status: string }[],
   range: ChartRangeId,
   locale: string,
-): { label: string; count: number }[] {
+): ApplicationTrendBucket[] {
   const now = Date.now();
   const spec = CHART_RANGES.find((r) => r.id === range) ?? CHART_RANGES[0]!;
   const fromMs = spec.days == null ? 0 : now - spec.days * 86400000;
-  const filtered = timestamps.filter((t) => inRange(t, fromMs));
+  const filtered = rows.filter((r) => inRange(r.createdAt, fromMs));
 
   if (range === "7d" || range === "20d") {
     const days = range === "7d" ? 7 : 20;
-    const buckets: { label: string; count: number }[] = [];
+    const buckets: ApplicationTrendBucket[] = [];
     for (let i = days - 1; i >= 0; i -= 1) {
       const start = startOfDay(now - i * 86400000);
       const end = start + 86400000;
-      const count = filtered.filter((t) => {
-        const ms = new Date(t).getTime();
-        return ms >= start && ms < end;
-      }).length;
       const label = new Date(start).toLocaleDateString(locale, {
         weekday: range === "7d" ? "short" : undefined,
         day: "numeric",
         month: range === "20d" ? "short" : undefined,
       });
-      buckets.push({ label, count });
+      const bucket = emptyTrendBucket(label);
+      for (const row of filtered) {
+        const ms = new Date(row.createdAt).getTime();
+        if (ms >= start && ms < end) addTrendRow(bucket, row.status);
+      }
+      buckets.push(bucket);
     }
     return buckets;
   }
 
   const monthCount =
     range === "6m" ? 6 : range === "1y" ? 12 : range === "3y" ? 36 : range === "5y" ? 60 : 24;
-  const earliest = filtered.reduce((min, t) => {
-    const ms = new Date(t).getTime();
+  const earliest = filtered.reduce((min, r) => {
+    const ms = new Date(r.createdAt).getTime();
     return ms < min ? ms : min;
   }, now);
   const months =
@@ -266,24 +284,70 @@ export function buildHiringBuckets(
         )
       : Math.min(monthCount, 24);
 
-  const buckets: { label: string; count: number }[] = [];
+  const buckets: ApplicationTrendBucket[] = [];
   const cursor = new Date();
   cursor.setDate(1);
   cursor.setHours(0, 0, 0, 0);
   for (let i = months - 1; i >= 0; i -= 1) {
     const start = new Date(cursor.getFullYear(), cursor.getMonth() - i, 1).getTime();
     const end = new Date(cursor.getFullYear(), cursor.getMonth() - i + 1, 1).getTime();
-    const count = filtered.filter((t) => {
-      const ms = new Date(t).getTime();
-      return ms >= start && ms < end;
-    }).length;
-    buckets.push({
-      label: new Date(start).toLocaleDateString(locale, {
+    const bucket = emptyTrendBucket(
+      new Date(start).toLocaleDateString(locale, {
         month: "short",
         year: months > 12 ? "2-digit" : undefined,
       }),
-      count,
-    });
+    );
+    for (const row of filtered) {
+      const ms = new Date(row.createdAt).getTime();
+      if (ms >= start && ms < end) addTrendRow(bucket, row.status);
+    }
+    buckets.push(bucket);
   }
   return buckets;
+}
+
+export function buildHiringBuckets(
+  timestamps: string[],
+  range: ChartRangeId,
+  locale: string,
+): { label: string; count: number }[] {
+  return buildApplicationTrendBuckets(
+    timestamps.map((createdAt) => ({ createdAt, status: "SUBMITTED" })),
+    range,
+    locale,
+  ).map((b) => ({ label: b.label, count: b.applications }));
+}
+
+export type JobPerformanceRow = {
+  title: string;
+  applications: number;
+  shortlisted: number;
+  hired: number;
+};
+
+export function buildJobPerformanceRows(
+  jobs: { id: string; title: string }[],
+  applicationCounts: Map<string, number>,
+  applicants: DashboardApplicantRow[],
+): JobPerformanceRow[] {
+  return jobs.map((job) => {
+    const rows = applicants.filter((r) => r.jobId === job.id);
+    return {
+      title: job.title,
+      applications: applicationCounts.get(job.id) ?? rows.length,
+      shortlisted: rows.filter((r) => r.application.status === "SHORTLISTED")
+        .length,
+      hired: rows.filter((r) => r.application.status === "HIRED").length,
+    };
+  });
+}
+
+export function applicationStatusCounts(
+  statuses: string[],
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const status of statuses) {
+    counts[status] = (counts[status] ?? 0) + 1;
+  }
+  return counts;
 }

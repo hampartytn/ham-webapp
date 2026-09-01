@@ -22,7 +22,9 @@ import {
   proxyPath,
 } from "@/lib/api/bff-client";
 import { geoDistrictsQueryOptions, skillsQueryOptions } from "@/lib/query/catalog";
+import { ApplicationStatusChart } from "@/features/employer/charts/application-status-chart";
 import {
+  applicationStatusCounts,
   displayWorkerName,
   formatRelativeTime,
   workerInitials,
@@ -115,6 +117,17 @@ export function EmployerApplicantsHub({
     SHORTLISTED: rows.filter((r) => r.application.status === "SHORTLISTED").length,
     HIRED: rows.filter((r) => r.application.status === "HIRED").length,
   };
+  const statusMix = applicationStatusCounts(
+    rows.map((r) => r.application.status),
+  );
+  const appsFailed =
+    targetJobs.length > 0 &&
+    appQueries.every((q) => Boolean(q.error) && !q.data);
+  const retryApps = () => {
+    appQueries.forEach((q) => {
+      void q.refetch();
+    });
+  };
 
   const districtsQ = useQuery(geoDistrictsQueryOptions);
   const skillsQ = useQuery(skillsQueryOptions);
@@ -182,6 +195,29 @@ export function EmployerApplicantsHub({
         </div>
       ) : (
         <>
+          <div className="max-w-md">
+            <ApplicationStatusChart
+              title={t("applicationStatusMix")}
+              emptyMessage={t("applicationsTrendEmpty")}
+              errorMessage={t("chartLoadError")}
+              retryLabel={t("chartRetry")}
+              counts={statusMix}
+              labels={{
+                SUBMITTED: t("appStatus.SUBMITTED"),
+                VIEWED: t("appStatus.VIEWED"),
+                SHORTLISTED: t("appStatus.SHORTLISTED"),
+                HIRED: t("appStatus.HIRED"),
+                REJECTED: t("appStatus.REJECTED"),
+                WITHDRAWN: t("appStatus.WITHDRAWN"),
+              }}
+              loading={jobsQ.isPending || appsPending}
+              error={appsFailed}
+              onRetry={retryApps}
+              summary={t("applicationStatusMixAria", {
+                total: rows.length,
+              })}
+            />
+          </div>
           <div className="overflow-x-auto border-b border-[var(--emp-border)]">
             <nav className="flex min-w-max gap-6">
               {TABS.map((value) => {

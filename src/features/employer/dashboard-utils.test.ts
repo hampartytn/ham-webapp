@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildApplicationTrendBuckets,
   buildAttentionItems,
+  buildHiringBuckets,
   displayWorkerName,
   looksLikeId,
   workerInitials,
@@ -76,3 +78,45 @@ describe("buildAttentionItems", () => {
     ]);
   });
 });
+
+describe("buildApplicationTrendBuckets", () => {
+  it("counts applications by current status in a 7-day window", () => {
+    const now = Date.now();
+    const iso = (daysAgo: number) =>
+      new Date(now - daysAgo * 86400000).toISOString();
+    const buckets = buildApplicationTrendBuckets(
+      [
+        { createdAt: iso(0), status: "SUBMITTED" },
+        { createdAt: iso(0), status: "HIRED" },
+        { createdAt: iso(1), status: "SHORTLISTED" },
+        { createdAt: iso(20), status: "SUBMITTED" },
+      ],
+      "7d",
+      "en",
+    );
+    expect(buckets).toHaveLength(7);
+    const today = buckets[6];
+    const yesterday = buckets[5];
+    expect(today?.applications).toBe(2);
+    expect(today?.hired).toBe(1);
+    expect(yesterday?.applications).toBe(1);
+    expect(yesterday?.shortlisted).toBe(1);
+    expect(buckets.reduce((sum, b) => sum + b.applications, 0)).toBe(3);
+  });
+});
+
+describe("buildHiringBuckets", () => {
+  it("matches application totals for the same timestamps", () => {
+    const now = new Date().toISOString();
+    const trend = buildApplicationTrendBuckets(
+      [{ createdAt: now, status: "SUBMITTED" }],
+      "7d",
+      "en",
+    );
+    const hiring = buildHiringBuckets([now], "7d", "en");
+    expect(hiring.map((b) => b.count)).toEqual(
+      trend.map((b) => b.applications),
+    );
+  });
+});
+
