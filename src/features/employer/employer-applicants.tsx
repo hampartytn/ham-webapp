@@ -21,7 +21,7 @@ import {
   type OffsetMeta,
   proxyPath,
 } from "@/lib/api/bff-client";
-import { geoDistrictsQueryOptions, skillsQueryOptions } from "@/lib/query/catalog";
+import { geoDistrictsQueryOptions, skillsQueryOptions } from "@/lib/query/catalog";import { employerJobsFeedQueryOptions } from "@/lib/query/employer-jobs";
 import { ApplicationStatusChart } from "@/features/employer/charts/application-status-chart";
 import {
   applicationStatusCounts,
@@ -55,13 +55,7 @@ export function EmployerApplicantsHub({
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const jobsQ = useQuery({
-    queryKey: ["employer-jobs", "applicants-hub"],
-    queryFn: () =>
-      bffEnvelope<EmployerJob[], OffsetMeta>(
-        proxyPath("employer/jobs", { page: 1, limit: 50 }),
-      ),
-  });
+  const jobsQ = useQuery(employerJobsFeedQueryOptions);
 
   const jobs = useMemo(() => jobsQ.data?.data ?? [], [jobsQ.data?.data]);
   const targetJobs = jobFilter ? jobs.filter((j) => j.id === jobFilter) : jobs;
@@ -305,7 +299,8 @@ export function EmployerApplicantsHub({
 
           {msg ? <p className="text-sm text-[var(--emp-error)]">{msg}</p> : null}
 
-          {(jobsQ.isPending && !jobsQ.data) || appsPending ? (
+          {(jobsQ.isPending && !jobsQ.data) ||
+          (appsPending && filtered.length === 0) ? (
             <LoadingState />
           ) : filtered.length === 0 ? (
             <EmptyState title={t("noApplicantsYet")} />

@@ -4,10 +4,10 @@ import { useTranslations } from "next-intl";
 
 import { LanguagePicker } from "@/components/shared/language-picker";
 import { LogoutButton } from "@/components/shared/logout-button";
+import { RoleNavLink } from "@/components/navigation/role-nav-link";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
-import { prefetchRoleHref } from "@/lib/query/nav-prefetch";
-import { useQueryClient } from "@tanstack/react-query";
+import { useWarmRoleRoutes } from "@/lib/query/use-warm-role-routes";
 
 const ITEMS = [
   { href: "/employee", key: "dashboard" as const },
@@ -20,10 +20,12 @@ const ITEMS = [
   { href: "/employee/settings", key: "settings" as const },
 ];
 
+const EMPLOYEE_WARM_ROUTES = ITEMS.map((i) => i.href);
+
 export function EmployeeNav() {
   const t = useTranslations("shell");
   const pathname = usePathname();
-  const queryClient = useQueryClient();
+  useWarmRoleRoutes(EMPLOYEE_WARM_ROUTES);
 
   return (
     <div className="border-b border-border bg-background">
@@ -45,7 +47,7 @@ export function EmployeeNav() {
             pathname === item.href ||
             (item.href !== "/employee" && pathname.startsWith(item.href));
           return (
-            <Link
+            <RoleNavLink
               key={item.href}
               href={item.href}
               className={cn(
@@ -54,10 +56,9 @@ export function EmployeeNav() {
                   ? "bg-primary text-primary-foreground"
                   : "text-foreground hover:bg-muted",
               )}
-              onMouseEnter={() => prefetchRoleHref(queryClient, item.href)}
             >
               {t(item.key)}
-            </Link>
+            </RoleNavLink>
           );
         })}
       </nav>

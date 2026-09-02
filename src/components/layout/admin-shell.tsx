@@ -5,11 +5,11 @@ import type { ReactNode } from "react";
 
 import { LanguagePicker } from "@/components/shared/language-picker";
 import { LogoutButton } from "@/components/shared/logout-button";
+import { RoleNavLink } from "@/components/navigation/role-nav-link";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
-import { prefetchRoleHref } from "@/lib/query/nav-prefetch";
 import { usePrefetchCatalogs } from "@/lib/query/use-prefetch-catalogs";
-import { useQueryClient } from "@tanstack/react-query";
+import { useWarmRoleRoutes } from "@/lib/query/use-warm-role-routes";
 
 const ITEMS = [
   { href: "/admin", key: "dashboard" as const },
@@ -21,6 +21,8 @@ const ITEMS = [
   { href: "/admin/admins", key: "admins" as const },
 ];
 
+const ADMIN_WARM_ROUTES = ITEMS.map((i) => i.href);
+
 /**
  * Admin nav is UX-only. Nest remains authoritative.
  * Progressive disclosure via /admin/permissions/check is planned for W8;
@@ -29,8 +31,8 @@ const ITEMS = [
 export function AdminShell({ children }: { children: ReactNode }) {
   const t = useTranslations("shell");
   const pathname = usePathname();
-  const queryClient = useQueryClient();
   usePrefetchCatalogs();
+  useWarmRoleRoutes(ADMIN_WARM_ROUTES);
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -44,7 +46,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
               pathname === item.href ||
               (item.href !== "/admin" && pathname.startsWith(item.href));
             return (
-              <Link
+              <RoleNavLink
                 key={item.href}
                 href={item.href}
                 className={cn(
@@ -53,10 +55,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
                     ? "bg-primary text-primary-foreground"
                     : "hover:bg-muted",
                 )}
-                onMouseEnter={() => prefetchRoleHref(queryClient, item.href)}
               >
                 {t(item.key)}
-              </Link>
+              </RoleNavLink>
             );
           })}
         </nav>

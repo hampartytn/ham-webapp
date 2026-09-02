@@ -1,7 +1,12 @@
 import type { QueryClient } from "@tanstack/react-query";
 
 import { bffEnvelope, bffJson, type OffsetMeta, proxyPath } from "@/lib/api/bff-client";
-import { prefetchMe } from "@/lib/query/session-cache";
+import { employerJobsFeedQueryOptions } from "@/lib/query/employer-jobs";
+import {
+  cancelNavDataPrefetch,
+  scheduleNavDataPrefetch,
+} from "@/lib/query/idle-schedule";
+import { ME_QUERY_KEY, prefetchMe } from "@/lib/query/session-cache";
 import type {
   ApplicationItem,
   EmployeeProfile,
@@ -11,33 +16,29 @@ import type {
   VerificationMe,
 } from "@/types/ham";
 
+export { cancelNavDataPrefetch as cancelIdleWork };
+
+/** Hover-only warm-up. Never call from a click handler. */
+export function prefetchRoleHrefIdle(queryClient: QueryClient, href: string): void {
+  scheduleNavDataPrefetch(() => prefetchRoleHref(queryClient, href));
+}
+
 /** Hover-only warm-up. Never call from a click handler. */
 export function prefetchRoleHref(queryClient: QueryClient, href: string): void {
-  prefetchMe(queryClient);
-
-  if (href === "/employer" || href === "/employer/jobs") {
-    const dashboard = href === "/employer";
-    void queryClient.prefetchQuery({
-      queryKey: dashboard
-        ? (["employer-jobs", "dashboard"] as const)
-        : (["employer-jobs", 1, ""] as const),
-      queryFn: () =>
-        bffEnvelope<EmployerJob[], OffsetMeta>(
-          proxyPath("employer/jobs", {
-            page: 1,
-            limit: dashboard ? 50 : 20,
-          }),
-        ),
-      staleTime: 30_000,
-    });
+  if (!queryClient.getQueryData(ME_QUERY_KEY)) {
+    prefetchMe(queryClient);
   }
 
-  if (href === "/employer/applicants") {
+  if (href === "/employer" || href === "/employer/applicants") {
+    void queryClient.prefetchQuery(employerJobsFeedQueryOptions);
+  }
+
+  if (href === "/employer/jobs") {
     void queryClient.prefetchQuery({
-      queryKey: ["employer-jobs", "applicants-hub"] as const,
+      queryKey: ["employer-jobs", 1, ""] as const,
       queryFn: () =>
         bffEnvelope<EmployerJob[], OffsetMeta>(
-          proxyPath("employer/jobs", { page: 1, limit: 50 }),
+          proxyPath("employer/jobs", { page: 1, limit: 20 }),
         ),
       staleTime: 30_000,
     });

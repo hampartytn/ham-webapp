@@ -29,6 +29,15 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  experimental: {
+    // Default dynamic staleTime is 0 (Next 15+), so every click waited on a new RSC
+    // round-trip — including static employer pages behind a cookie layout.
+    // React Query remains the source of truth for API data; this only caches shells.
+    staleTimes: {
+      dynamic: 60,
+      static: 300,
+    },
+  },
   async headers() {
     return [
       {

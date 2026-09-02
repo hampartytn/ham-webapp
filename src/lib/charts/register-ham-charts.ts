@@ -40,6 +40,9 @@ export function registerHamCharts() {
 }
 
 export function applyHamChartDefaults() {
+  // Always pin this: a delayed resize after React unmounts the canvas is what
+  // threw `Cannot read properties of null (ownerDocument)`.
+  Chart.defaults.resizeDelay = 0;
   if (defaultsApplied) return;
   Chart.defaults.font.family = HAM_CHART_FONT;
   Chart.defaults.font.size = 12;
@@ -47,9 +50,8 @@ export function applyHamChartDefaults() {
   Chart.defaults.borderColor = HAM_CHART.grid;
   Chart.defaults.responsive = true;
   Chart.defaults.maintainAspectRatio = false;
-  Chart.defaults.resizeDelay = 50;
   Chart.defaults.animation = {
-    duration: 400,
+    duration: 280,
     easing: "easeOutQuart",
   };
   Chart.defaults.plugins.legend.labels.boxWidth = 10;

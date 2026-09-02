@@ -26,12 +26,13 @@ import {
 } from "react";
 
 import { LanguageSelector } from "@/components/shared/language-selector";
+import { RoleNavLink } from "@/components/navigation/role-nav-link";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { bffJson, proxyPath } from "@/lib/api/bff-client";
 import { cn } from "@/lib/utils";
 import { ME_QUERY_KEY, ME_STALE_MS } from "@/lib/query/session-cache";
-import { prefetchRoleHref } from "@/lib/query/nav-prefetch";
 import { usePrefetchCatalogs } from "@/lib/query/use-prefetch-catalogs";
+import { useWarmRoleRoutes } from "@/lib/query/use-warm-role-routes";
 import type { MeResponse } from "@/types/ham";
 import { dashboardDisplayName, workerInitials } from "@/features/employer/dashboard-utils";
 import "@/styles/employer.css";
@@ -66,6 +67,13 @@ const SECONDARY_NAV: NavItem[] = [
   { href: "/employer/settings", key: "settings", icon: Settings },
 ];
 
+const EMPLOYER_WARM_ROUTES = [
+  ...PRIMARY_NAV.map((i) => i.href),
+  ...SECONDARY_NAV.map((i) => i.href),
+  "/employer/help",
+  "/employer/support",
+] as const;
+
 function isActive(pathname: string, href: string) {
   if (href === "/employer") return pathname === "/employer";
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -79,6 +87,7 @@ export function EmployerShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   usePrefetchCatalogs();
+  useWarmRoleRoutes(EMPLOYER_WARM_ROUTES);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -156,19 +165,18 @@ export function EmployerShell({ children }: { children: ReactNode }) {
                   ? te("navApplications")
                   : t(item.key === "settings" ? "settings" : item.key);
     return (
-      <Link
+      <RoleNavLink
         href={item.href}
         className={cn(
           "ham-employer__nav-item",
           active && "ham-employer__nav-item--active",
         )}
         aria-current={active ? "page" : undefined}
-        onMouseEnter={() => prefetchRoleHref(queryClient, item.href)}
         onClick={() => setMobileOpen(false)}
       >
         <Icon className="size-5 shrink-0" strokeWidth={1.75} aria-hidden />
         <span>{label}</span>
-      </Link>
+      </RoleNavLink>
     );
   }
 
@@ -222,22 +230,22 @@ export function EmployerShell({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="ham-employer__nav-foot">
-          <Link
+          <RoleNavLink
             href="/employer/help"
             className="ham-employer__nav-item"
             onClick={() => setMobileOpen(false)}
           >
             <CircleHelp className="size-5 shrink-0" aria-hidden />
             <span>{te("navHelp")}</span>
-          </Link>
-          <Link
+          </RoleNavLink>
+          <RoleNavLink
             href="/employer/support"
             className="ham-employer__nav-item"
             onClick={() => setMobileOpen(false)}
           >
             <LifeBuoy className="size-5 shrink-0" aria-hidden />
             <span>{te("navSupport")}</span>
-          </Link>
+          </RoleNavLink>
           <button
             type="button"
             className="ham-employer__nav-item ham-employer__nav-item--danger"

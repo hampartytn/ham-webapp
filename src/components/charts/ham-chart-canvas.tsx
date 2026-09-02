@@ -6,7 +6,7 @@ import {
   type ChartOptions,
   type ChartType,
 } from "chart.js";
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 import {
   applyHamChartDefaults,
@@ -20,6 +20,15 @@ type HamChartCanvasProps<TType extends ChartType> = {
   options?: ChartOptions<TType>;
   ariaLabel: string;
   className?: string;
+};
+
+type ChartHandle = {
+  canvas: HTMLCanvasElement | null;
+  data: ChartData;
+  options: ChartOptions | undefined;
+  stop: () => void;
+  destroy: () => void;
+  update: (mode?: string) => void;
 };
 
 function prefersReducedMotion() {
@@ -39,6 +48,23 @@ function dataSignature<TType extends ChartType>(data: ChartData<TType>) {
   });
 }
 
+function canvasStillLive(canvas: HTMLCanvasElement | null | undefined) {
+  return Boolean(canvas?.isConnected && canvas.ownerDocument?.defaultView);
+}
+
+function teardownChart(chart: ChartHandle | null) {
+  if (!chart) return;
+  try {
+    if (chart.options) {
+      chart.options.animation = false;
+    }
+    chart.stop();
+    chart.destroy();
+  } catch {
+    /* Chart.js animator / resize can outlive the canvas on route change */
+  }
+}
+
 export function HamChartCanvas<TType extends ChartType>({
   type,
   data,
@@ -47,21 +73,26 @@ export function HamChartCanvas<TType extends ChartType>({
   className,
 }: HamChartCanvasProps<TType>) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const chartRef = useRef<Chart<TType> | null>(null);
+  const chartRef = useRef<ChartHandle | null>(null);
   const dataRef = useRef(data);
   const optionsRef = useRef(options);
+  const aliveRef = useRef(false);
   const skipNextUpdate = useRef(true);
   dataRef.current = data;
   optionsRef.current = options;
   const signature = dataSignature(data);
 
-  useEffect(() => {
+  // Layout effect so destroy runs while the canvas is still in the document.
+  // useEffect cleanup is too late: Chart.js already saw detach and tried to
+  // resize a null canvas (`ownerDocument`) / tick a dead animator (`_fn`).
+  useLayoutEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvasStillLive(canvas) || !canvas) return;
 
     registerHamCharts();
     applyHamChartDefaults();
     skipNextUpdate.current = true;
+    aliveRef.current = true;
 
     const chart = new Chart(canvas, {
       type,
@@ -71,23 +102,31 @@ export function HamChartCanvas<TType extends ChartType>({
     if (prefersReducedMotion() && chart.options) {
       chart.options.animation = false;
     }
-    chartRef.current = chart;
+    chartRef.current = chart as unknown as ChartHandle;
 
     return () => {
-      chart.destroy();
+      aliveRef.current = false;
       chartRef.current = null;
+      teardownChart(chart as unknown as ChartHandle);
     };
   }, [type]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (!aliveRef.current) return;
     const chart = chartRef.current;
-    if (!chart) return;
+    if (!chart || !canvasStillLive(chart.canvas)) return;
     if (skipNextUpdate.current) {
       skipNextUpdate.current = false;
       return;
     }
-    chart.data = dataRef.current;
-    chart.update();
+    try {
+      chart.data = dataRef.current;
+      // Background cache refresh must not animate — also avoids Chart.js
+      // animator callbacks after the canvas has been unmounted.
+      chart.update("none");
+    } catch {
+      /* unmounted mid-update */
+    }
   }, [signature]);
 
   return (

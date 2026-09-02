@@ -43,6 +43,7 @@ export function EmployerJobsList() {
   const listQ = useQuery({
     queryKey: ["employer-jobs", page, status],
     placeholderData: keepPreviousData,
+    staleTime: 30_000,
     queryFn: () =>
       bffEnvelope<EmployerJob[], OffsetMeta>(
         proxyPath("employer/jobs", {

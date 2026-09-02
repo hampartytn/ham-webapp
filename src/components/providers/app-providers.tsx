@@ -12,8 +12,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
         defaultOptions: {
           queries: {
             staleTime: 30_000,
+            gcTime: 30 * 60_000,
             retry: 1,
             refetchOnWindowFocus: false,
+            refetchOnReconnect: true,
           },
         },
       }),

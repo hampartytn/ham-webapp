@@ -36,6 +36,7 @@ import {
   type DashboardApplicantRow,
 } from "@/features/employer/dashboard-utils";
 import { bffEnvelope, bffJson, type OffsetMeta, proxyPath } from "@/lib/api/bff-client";
+import { employerJobsFeedQueryOptions } from "@/lib/query/employer-jobs";
 import { ME_QUERY_KEY, ME_STALE_MS } from "@/lib/query/session-cache";
 import type { ApplicantItem, EmployerJob, EmployerOrg, MeResponse } from "@/types/ham";
 import { cn } from "@/lib/utils";
@@ -59,14 +60,7 @@ export function EmployerDashboard() {
     staleTime: ME_STALE_MS,
   });
 
-  const jobsQ = useQuery({
-    queryKey: ["employer-jobs", "dashboard"],
-    queryFn: () =>
-      bffEnvelope<EmployerJob[], OffsetMeta>(
-        proxyPath("employer/jobs", { page: 1, limit: 50 }),
-      ),
-    staleTime: 30_000,
-  });
+  const jobsQ = useQuery(employerJobsFeedQueryOptions);
 
   const orgQ = useQuery({
     queryKey: ["employer-profile"],
