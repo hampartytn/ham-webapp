@@ -13,15 +13,16 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { LoadingState } from "@/components/shared/loading-state";
 import { useBffErrorMessage } from "@/components/shared/status-badge";
-import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
+import { EmployerPostJobButton } from "@/features/employer/employer-job-create-gate";
 import {
   bffEnvelope,
   bffJson,
   type OffsetMeta,
   proxyPath,
 } from "@/lib/api/bff-client";
-import { geoDistrictsQueryOptions, skillsQueryOptions } from "@/lib/query/catalog";import { employerJobsFeedQueryOptions } from "@/lib/query/employer-jobs";
+import { geoDistrictsQueryOptions, skillsQueryOptions } from "@/lib/query/catalog";
+import { employerJobsFeedQueryOptions } from "@/lib/query/employer-jobs";
 import { ApplicationStatusChart } from "@/features/employer/charts/application-status-chart";
 import {
   applicationStatusCounts,
@@ -183,9 +184,9 @@ export function EmployerApplicantsHub({
       ) : !jobsQ.isPending && jobs.length === 0 ? (
         <div className="ham-employer__card space-y-3 p-8">
           <EmptyState title={t("noJobsYet")} description={t("applicantsNeedJobs")} />
-          <Button asChild>
-            <Link href="/employer/jobs/new">{t("postJob")}</Link>
-          </Button>
+          <EmployerPostJobButton className="ham-employer__btn ham-employer__btn--primary">
+            {t("postJob")}
+          </EmployerPostJobButton>
         </div>
       ) : (
         <>

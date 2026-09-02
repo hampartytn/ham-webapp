@@ -11,6 +11,9 @@ import { useBffErrorMessage } from "@/components/shared/status-badge";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "@/i18n/navigation";
 import { bffJson, proxyPath } from "@/lib/api/bff-client";
+import { EmployerMembershipRequiredDialog } from "@/features/employer/employer-membership-required-dialog";
+import { isEmployerMembershipRequiredError } from "@/features/employer/employer-membership-view";
+import { useEmployerJobCreateGate } from "@/features/employer/employer-job-create-gate";
 import { geoDistrictsQueryOptions, skillsQueryOptions } from "@/lib/query/catalog";
 import { cn } from "@/lib/utils";
 import type { CatalogItem, EmployerJob } from "@/types/ham";
@@ -153,6 +156,8 @@ function JobFormFields({
   const [step, setStep] = useState(0);
   const [facilities, setFacilities] = useState<string[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
+  const [membershipOpen, setMembershipOpen] = useState(false);
+  const { gate, amountPaise } = useEmployerJobCreateGate();
 
   const districtsQ = useQuery(geoDistrictsQueryOptions);
   const citiesQ = useQuery({
@@ -215,10 +220,26 @@ function JobFormFields({
     onSuccess: (job) => {
       router.push(`/employer/jobs/${job.id}`);
     },
-    onError: (e) => setMsg(errMsg(e)),
+    onError: (e) => {
+      if (mode === "create" && isEmployerMembershipRequiredError(e)) {
+        setMembershipOpen(true);
+        return;
+      }
+      setMsg(errMsg(e));
+    },
   });
 
+  const submitCreate = (status: "DRAFT" | "PUBLISHED") => {
+    if (gate === "loading") return;
+    if (gate === "blocked") {
+      setMembershipOpen(true);
+      return;
+    }
+    saveMut.mutate(status);
+  };
+
   const canSubmit = Boolean(title && description && districtId);
+  const createBlocked = mode === "create" && gate !== "allow";
   const STEPS = [
     t("stepJobBasics"),
     t("stepWorkDetails"),
@@ -502,6 +523,12 @@ function JobFormFields({
 
       {msg ? <p className="text-sm text-[var(--emp-error)]">{msg}</p> : null}
 
+      <EmployerMembershipRequiredDialog
+        open={membershipOpen}
+        onOpenChange={setMembershipOpen}
+        amountPaise={amountPaise}
+      />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"
@@ -515,8 +542,8 @@ function JobFormFields({
             <button
               type="button"
               className="ham-employer__btn ham-employer__btn--secondary"
-              disabled={!canSubmit || saveMut.isPending}
-              onClick={() => saveMut.mutate("DRAFT")}
+              disabled={!canSubmit || saveMut.isPending || createBlocked}
+              onClick={() => submitCreate("DRAFT")}
             >
               {saveMut.isPending ? <span className="ham-employer__spinner" /> : null}
               {t("draft")}
@@ -534,9 +561,13 @@ function JobFormFields({
             <button
               type="button"
               className="ham-employer__btn ham-employer__btn--primary"
-              disabled={!canSubmit || saveMut.isPending}
+              disabled={
+                !canSubmit || saveMut.isPending || (mode === "create" && createBlocked)
+              }
               onClick={() =>
-                saveMut.mutate(mode === "create" ? "PUBLISHED" : undefined)
+                mode === "create"
+                  ? submitCreate("PUBLISHED")
+                  : saveMut.mutate(undefined)
               }
             >
               {saveMut.isPending ? <span className="ham-employer__spinner" /> : null}

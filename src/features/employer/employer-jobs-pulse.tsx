@@ -6,6 +6,7 @@ import { EmployerPanel } from "@/components/employer/employer-page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
+import { EmployerPostJobButton } from "@/features/employer/employer-job-create-gate";
 import {
   toneForStatus,
 } from "@/features/employer/dashboard-utils";
@@ -115,9 +116,9 @@ export function EmployerJobsPulse({
             {t("noJobsHint")}
           </p>
           <div className="mt-4">
-            <Button asChild size="sm">
-              <Link href="/employer/jobs/new">{t("postJob")}</Link>
-            </Button>
+            <EmployerPostJobButton className="ham-employer__btn ham-employer__btn--primary ham-employer__btn--sm">
+              {t("postJob")}
+            </EmployerPostJobButton>
           </div>
         </div>
       ) : (

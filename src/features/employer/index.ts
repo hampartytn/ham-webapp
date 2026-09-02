@@ -14,7 +14,7 @@ export { EmployerSettingsPanel } from "./employer-settings";
 export { EmployerWelcome } from "./employer-welcome";
 export { EmployerOnboarding } from "./employer-onboarding";
 export { EmployerVerificationPage } from "./employer-verification-page";
-export { EmployerMembershipPage } from "./employer-membership";
+export { EmployerMembershipPanel } from "./employer-membership";
 export { EmployerUnavailable } from "./employer-unavailable";
 
 /** @deprecated Use EmployerJobForm */

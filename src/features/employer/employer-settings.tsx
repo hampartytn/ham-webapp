@@ -1,45 +1,33 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
 
 import { EmployerPageHeader } from "@/components/employer/employer-page-header";
 import { LanguageSelector } from "@/components/shared/language-selector";
 import { LogoutButton } from "@/components/shared/logout-button";
 import { ErrorState } from "@/components/shared/error-state";
 import { LoadingState } from "@/components/shared/loading-state";
-import { useBffErrorMessage } from "@/components/shared/status-badge";
 import { PasswordSetForm } from "@/features/auth/components/password-set-form";
+import { Link } from "@/i18n/navigation";
 import { bffJson, proxyPath } from "@/lib/api/bff-client";
+import { employerMembershipQueryOptions } from "@/lib/query/employer-membership";
 import { ME_QUERY_KEY, ME_STALE_MS } from "@/lib/query/session-cache";
 import type { MeResponse } from "@/types/ham";
+
+import { employerMembershipDisplayStatus } from "./employer-membership-view";
 
 export function EmployerSettingsPanel() {
   const t = useTranslations("employer");
   const ta = useTranslations("auth");
   const ts = useTranslations("shell");
-  const errMsg = useBffErrorMessage();
-  const [msg, setMsg] = useState<string | null>(null);
 
   const meQ = useQuery({
     queryKey: ME_QUERY_KEY,
     queryFn: () => bffJson<MeResponse>(proxyPath("me")),
     staleTime: ME_STALE_MS,
   });
-
-  const payMut = useMutation({
-    mutationFn: () =>
-      bffJson<{ paymentId: string; status: string }>(
-        proxyPath("payments/initiate"),
-        {
-          method: "POST",
-          body: JSON.stringify({ purpose: "EMPLOYER_ACTIVATION" }),
-        },
-      ),
-    onSuccess: (d) => setMsg(t("paymentStatus", { status: d.status })),
-    onError: (e) => setMsg(errMsg(e)),
-  });
+  const membershipQ = useQuery(employerMembershipQueryOptions);
 
   if (meQ.isPending && !meQ.data) {
     return (
@@ -63,6 +51,10 @@ export function EmployerSettingsPanel() {
       </div>
     );
   }
+
+  const membershipDisplay = membershipQ.data
+    ? employerMembershipDisplayStatus(membershipQ.data)
+    : null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
@@ -99,15 +91,17 @@ export function EmployerSettingsPanel() {
       <section className="ham-employer__card space-y-3 p-6">
         <h2 className="text-base font-semibold">{t("sectionPayments")}</h2>
         <p className="text-sm text-[var(--emp-muted)]">{t("paymentsNote")}</p>
-        <button
-          type="button"
+        {membershipDisplay ? (
+          <p className="text-sm">
+            {t(`membershipDisplay.${membershipDisplay}`)}
+          </p>
+        ) : null}
+        <Link
+          href="/employer/membership"
           className="ham-employer__btn ham-employer__btn--secondary"
-          onClick={() => payMut.mutate()}
-          disabled={payMut.isPending}
         >
-          {t("initiatePayment")}
-        </button>
-        {msg ? <p className="text-sm">{msg}</p> : null}
+          {t("manageMembership")}
+        </Link>
       </section>
 
       <section className="ham-employer__card p-6">

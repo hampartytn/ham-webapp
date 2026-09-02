@@ -5,6 +5,7 @@ import { Clock, MapPin, Plus, User } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
+import { EmployerPostJobButton } from "@/features/employer/employer-job-create-gate";
 import {
   displayWorkerName,
   formatRelativeTime,
@@ -130,13 +131,12 @@ export function EmployerActiveJobsPremium({
     <section className="ham-employer__card p-5 md:p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold tracking-tight">{t("activeJobsTitle")}</h2>
-        <Link
-          href="/employer/jobs/new"
+        <EmployerPostJobButton
           className="inline-flex size-9 items-center justify-center rounded-full border border-[var(--emp-border)] bg-white text-[var(--emp-ink)] shadow-sm transition hover:-translate-y-0.5 hover:shadow"
-          aria-label={t("postJob")}
+          ariaLabel={t("postJob")}
         >
           <Plus className="size-4" />
-        </Link>
+        </EmployerPostJobButton>
       </div>
 
       {jobs.length === 0 ? (

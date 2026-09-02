@@ -19,6 +19,8 @@ import { EmployerBadge, jobBadgeTone } from "@/components/employer/employer-badg
 import { ErrorState } from "@/components/shared/error-state";
 import { Link } from "@/i18n/navigation";
 import { EmployerDashboardSkeleton } from "@/features/employer/employer-dashboard-skeleton";
+import { EmployerPostJobButton } from "@/features/employer/employer-job-create-gate";
+import { isEmployerMembershipActive } from "@/features/employer/employer-membership-view";
 import { ApplicationsTrendChart } from "@/features/employer/charts/applications-trend-chart";
 import { JobPerformanceChart } from "@/features/employer/charts/job-performance-chart";
 import { JobStatusChart } from "@/features/employer/charts/job-status-chart";
@@ -37,8 +39,9 @@ import {
 } from "@/features/employer/dashboard-utils";
 import { bffEnvelope, bffJson, type OffsetMeta, proxyPath } from "@/lib/api/bff-client";
 import { employerJobsFeedQueryOptions } from "@/lib/query/employer-jobs";
+import { employerMembershipQueryOptions } from "@/lib/query/employer-membership";
 import { ME_QUERY_KEY, ME_STALE_MS } from "@/lib/query/session-cache";
-import type { ApplicantItem, EmployerJob, EmployerOrg, MeResponse } from "@/types/ham";
+import type { ApplicantItem, EmployerOrg, MeResponse } from "@/types/ham";
 import { cn } from "@/lib/utils";
 
 function greetingKey(date = new Date()): "greetingMorning" | "greetingAfternoon" | "greetingEvening" {
@@ -61,6 +64,7 @@ export function EmployerDashboard() {
   });
 
   const jobsQ = useQuery(employerJobsFeedQueryOptions);
+  const membershipQ = useQuery(employerMembershipQueryOptions);
 
   const orgQ = useQuery({
     queryKey: ["employer-profile"],
@@ -154,6 +158,9 @@ export function EmployerDashboard() {
   const hired = recentApplicants.filter((r) => r.application.status === "HIRED").length;
   const totalApps = recentApplicants.length;
   const verified = orgQ.data?.organization?.verificationState === "VERIFIED";
+  const membershipActive = isEmployerMembershipActive(
+    membershipQ.data?.status ?? orgQ.data?.organization?.membershipStatus,
+  );
   const jobsThisWeek = countInWindow(
     jobs.filter((j) => j.status === "PUBLISHED").map((j) => j.publishedAt ?? j.createdAt),
     7,
@@ -209,13 +216,25 @@ export function EmployerDashboard() {
                 )}
               </Link>
             )}
+            <Link
+              href="/employer/membership"
+              className={
+                membershipActive
+                  ? "ham-employer__pill ham-employer__pill--success"
+                  : "ham-employer__pill ham-employer__pill--warn"
+              }
+            >
+              {membershipActive
+                ? t("membershipPillVerified")
+                : t("membershipPillRequired")}
+            </Link>
           </div>
           <p className="text-base text-[var(--emp-muted)]">{t("pipelineSubtitle")}</p>
         </div>
-        <Link href="/employer/jobs/new" className="ham-employer__btn ham-employer__btn--primary">
+        <EmployerPostJobButton className="ham-employer__btn ham-employer__btn--primary">
           <Plus className="size-5" aria-hidden />
           {t("postJob")}
-        </Link>
+        </EmployerPostJobButton>
       </div>
 
       {jobsQ.error && !jobsQ.data ? (

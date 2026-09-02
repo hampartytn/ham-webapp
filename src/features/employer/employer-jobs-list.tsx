@@ -20,6 +20,12 @@ import {
   type OffsetMeta,
   proxyPath,
 } from "@/lib/api/bff-client";
+import {
+  EmployerPostJobButton,
+  useEmployerJobCreateGate,
+} from "@/features/employer/employer-job-create-gate";
+import { EmployerMembershipRequiredDialog } from "@/features/employer/employer-membership-required-dialog";
+import { isEmployerMembershipRequiredError } from "@/features/employer/employer-membership-view";
 import { geoDistrictsQueryOptions } from "@/lib/query/catalog";
 import { cn } from "@/lib/utils";
 import type { ApplicantItem, EmployerJob } from "@/types/ham";
@@ -118,10 +124,10 @@ export function EmployerJobsList() {
         title={t("jobsOverviewTitle")}
         subtitle={t("jobsOverviewSubtitle")}
         actions={
-          <Link href="/employer/jobs/new" className="ham-employer__btn ham-employer__btn--primary">
+          <EmployerPostJobButton className="ham-employer__btn ham-employer__btn--primary">
             <Plus className="size-5" aria-hidden />
             {t("postNewJob")}
-          </Link>
+          </EmployerPostJobButton>
         }
       />
 
@@ -182,9 +188,9 @@ export function EmployerJobsList() {
         ) : jobs.length === 0 ? (
           <div className="p-8">
             <EmptyState title={t("noJobsYet")} description={t("noJobsHint")} />
-            <Link href="/employer/jobs/new" className="ham-employer__btn ham-employer__btn--primary mt-4">
+            <EmployerPostJobButton className="ham-employer__btn ham-employer__btn--primary mt-4">
               {t("postJob")}
-            </Link>
+            </EmployerPostJobButton>
           </div>
         ) : (
           <table className="ham-employer__table min-w-[800px]">
@@ -294,6 +300,8 @@ function JobRowActions({ job }: { job: EmployerJob }) {
   const qc = useQueryClient();
   const [closeOpen, setCloseOpen] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [membershipOpen, setMembershipOpen] = useState(false);
+  const { gate, amountPaise } = useEmployerJobCreateGate();
 
   const publishMut = useMutation({
     mutationFn: () =>
@@ -304,7 +312,13 @@ function JobRowActions({ job }: { job: EmployerJob }) {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["employer-jobs"] });
     },
-    onError: (e) => setMsg(errMsg(e)),
+    onError: (e) => {
+      if (isEmployerMembershipRequiredError(e)) {
+        setMembershipOpen(true);
+        return;
+      }
+      setMsg(errMsg(e));
+    },
   });
 
   const closeMut = useMutation({
@@ -352,8 +366,14 @@ function JobRowActions({ job }: { job: EmployerJob }) {
             type="button"
             className="ham-employer__btn ham-employer__btn--icon"
             title={t("publish")}
-            disabled={publishMut.isPending}
-            onClick={() => publishMut.mutate()}
+            disabled={publishMut.isPending || gate === "loading"}
+            onClick={() => {
+              if (gate === "blocked") {
+                setMembershipOpen(true);
+                return;
+              }
+              publishMut.mutate();
+            }}
           >
             {publishMut.isPending ? (
               <span className="ham-employer__spinner" />
@@ -378,6 +398,11 @@ function JobRowActions({ job }: { job: EmployerJob }) {
         ) : null}
       </div>
       {msg ? <p className="text-xs text-[var(--emp-error)]">{msg}</p> : null}
+      <EmployerMembershipRequiredDialog
+        open={membershipOpen}
+        onOpenChange={setMembershipOpen}
+        amountPaise={amountPaise}
+      />
       <ConfirmDialog
         open={closeOpen}
         onOpenChange={setCloseOpen}

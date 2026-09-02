@@ -1,5 +1,5 @@
-import { EmployerMembershipPage } from "@/features/employer";
+import { EmployerMembershipPanel } from "@/features/employer";
 
-export default function EmployerMembershipRoute() {
-  return <EmployerMembershipPage />;
+export default function EmployerMembershipPage() {
+  return <EmployerMembershipPanel />;
 }

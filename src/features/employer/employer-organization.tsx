@@ -1,18 +1,35 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check, Crown, Shield } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
-import { EmployerPageHeader } from "@/components/employer/employer-page-header";
 import { ErrorState } from "@/components/shared/error-state";
 import { LoadingState } from "@/components/shared/loading-state";
 import { useBffErrorMessage } from "@/components/shared/status-badge";
 import { Label } from "@/components/ui/label";
-import { Link } from "@/i18n/navigation";
 import { bffJson, proxyPath } from "@/lib/api/bff-client";
 import { geoDistrictsQueryOptions } from "@/lib/query/catalog";
+import { cn } from "@/lib/utils";
 import type { CatalogItem, EmployerOrg } from "@/types/ham";
+
+import {
+  companyProfileChecklist,
+  companyProfileCompletionPercent,
+  isOrganizationVerified,
+  isPremiumMembership,
+  organizationVerificationBadgeKey,
+} from "./employer-organization-view";
+
+const CHECKLIST_LABEL: Record<
+  "name" | "location" | "contact",
+  "checklistName" | "checklistLocation" | "checklistContact"
+> = {
+  name: "checklistName",
+  location: "checklistLocation",
+  contact: "checklistContact",
+};
 
 export function EmployerOrganizationForm() {
   const t = useTranslations("employer");
@@ -29,16 +46,16 @@ export function EmployerOrganizationForm() {
 
   if (profileQ.isPending && !profileQ.data) {
     return (
-      <div className="mx-auto max-w-2xl space-y-5">
-        <EmployerPageHeader title={t("orgTitle")} subtitle={t("orgSubtitle")} />
+      <div className="ham-employer-org">
+        <h1 className="ham-employer-org__title">{t("orgTitle")}</h1>
         <LoadingState />
       </div>
     );
   }
   if (profileQ.error) {
     return (
-      <div className="mx-auto max-w-2xl space-y-5">
-        <EmployerPageHeader title={t("orgTitle")} subtitle={t("orgSubtitle")} />
+      <div className="ham-employer-org">
+        <h1 className="ham-employer-org__title">{t("orgTitle")}</h1>
         <ErrorState onRetry={() => void profileQ.refetch()} />
       </div>
     );
@@ -50,6 +67,14 @@ export function EmployerOrganizationForm() {
       organization={profileQ.data?.organization ?? null}
       fullName={profileQ.data?.fullName ?? null}
     />
+  );
+}
+
+function FieldLabel({ children }: { children: string }) {
+  return (
+    <Label className="text-xs font-medium text-[var(--emp-muted)]">
+      {children}
+    </Label>
   );
 }
 
@@ -87,11 +112,22 @@ function EmployerOrganizationFields({
       bffJson<CatalogItem[]>(proxyPath(`geo/districts/${districtId}/cities`)),
   });
 
-  const checklist = [
-    { ok: Boolean(name.trim()), label: t("checklistName") },
-    { ok: Boolean(districtId), label: t("checklistLocation") },
-    { ok: Boolean(contactPhone || contactEmail), label: t("checklistContact") },
-  ];
+  const fields = {
+    fullName: employerFullName,
+    name,
+    description,
+    contactEmail,
+    contactPhone,
+    districtId,
+    cityId,
+  };
+  const percent = companyProfileCompletionPercent(fields);
+  const checklist = companyProfileChecklist(fields);
+  const verified = isOrganizationVerified(organization?.verificationState);
+  const premium = isPremiumMembership(organization?.membershipStatus);
+  const verificationKey = organizationVerificationBadgeKey(
+    organization?.verificationState,
+  );
 
   const saveMut = useMutation({
     mutationFn: async () => {
@@ -117,6 +153,7 @@ function EmployerOrganizationFields({
       setMsg(null);
       setSaved(true);
       await qc.invalidateQueries({ queryKey: ["employer-profile"] });
+      await qc.invalidateQueries({ queryKey: ["employer-membership"] });
       await qc.invalidateQueries({ queryKey: ["me"] });
     },
     onError: (e) => {
@@ -126,100 +163,143 @@ function EmployerOrganizationFields({
   });
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
-      <EmployerPageHeader
-        title={t("orgTitle")}
-        subtitle={t("orgSubtitle")}
-      />
+    <div className="ham-employer-org">
+      <header className="ham-employer-org__header">
+        <h1 className="ham-employer-org__title">{t("orgTitle")}</h1>
+        <p className="ham-employer-org__completion">
+          {t("orgProfileCompletion", { percent })}
+        </p>
+        <div
+          className="ham-employer-org__bar"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={percent}
+          aria-label={t("orgProfileCompletion", { percent })}
+        >
+          <span style={{ width: `${percent}%` }} />
+        </div>
+      </header>
 
-      <section className="ham-employer__card space-y-3 p-6">
-        <h2 className="text-base font-semibold">{t("profileChecklist")}</h2>
-        <ul className="space-y-1 text-sm">
+      <section className="ham-employer__card ham-employer-org__status">
+        <div className="ham-employer-org__badges">
+          <span
+            className={cn(
+              "ham-employer-org__badge",
+              verified
+                ? "ham-employer-org__badge--verified"
+                : organization?.verificationState === "REJECTED"
+                  ? "ham-employer-org__badge--danger"
+                  : organization?.verificationState === "PENDING"
+                    ? "ham-employer-org__badge--warn"
+                    : "ham-employer-org__badge--muted",
+            )}
+          >
+            <span className="ham-employer-org__badge-icon" aria-hidden>
+              {verified ? (
+                <Check className="size-3.5" strokeWidth={2.5} />
+              ) : (
+                <Shield className="size-3.5" strokeWidth={2.25} />
+              )}
+            </span>
+            {t(verificationKey)}
+          </span>
+          <span
+            className={cn(
+              "ham-employer-org__badge",
+              premium
+                ? "ham-employer-org__badge--premium"
+                : "ham-employer-org__badge--muted",
+            )}
+          >
+            <span className="ham-employer-org__badge-icon" aria-hidden>
+              <Crown className="size-3.5" strokeWidth={2.25} />
+            </span>
+            {premium
+              ? t("orgPremiumMembership")
+              : t("orgMembershipInactive")}
+          </span>
+        </div>
+        <ul className="ham-employer-org__checks">
           {checklist.map((item) => (
-            <li key={item.label} className="flex items-center gap-2">
+            <li key={item.key} className="ham-employer-org__check">
               <span
                 className={
                   item.ok
-                    ? "text-emerald-700"
-                    : "text-[var(--emp-muted)]"
+                    ? "ham-employer-org__check-mark"
+                    : "ham-employer-org__check-empty"
                 }
                 aria-hidden
               >
-                {item.ok ? "✓" : "○"}
+                {item.ok ? <Check className="size-3.5" strokeWidth={3} /> : null}
               </span>
-              {item.label}
+              {t(CHECKLIST_LABEL[item.key])}
             </li>
           ))}
         </ul>
-        {organization ? (
-          <p className="text-xs text-[var(--emp-muted)]">
-            {t("verificationState")}:{" "}
-            {t(
-              `orgVerification.${organization.verificationState}` as "orgVerification.UNVERIFIED",
-            )}{" "}
-            · {t("activationStatus")}: {organization.activationStatus}
-          </p>
-        ) : null}
-        <Link
-          href="/employer/verification"
-          className="inline-block text-sm font-semibold text-[var(--emp-primary)] hover:underline"
-        >
-          {t("accountVerification")}
-        </Link>
       </section>
 
-      <section className="ham-employer__card space-y-4 p-6">
-        <h2 className="text-base font-semibold">{t("sectionCompany")}</h2>
-        <div className="space-y-2">
-          <Label>{t("employerFullName")}</Label>
-          <input
-            className="ham-employer__input"
-            value={employerFullName}
-            onChange={(e) => setEmployerFullName(e.target.value)}
-          />
+      <section className="ham-employer__card ham-employer-org__card">
+        <h2 className="ham-employer-org__card-title">
+          {t("orgGeneralInformation")}
+        </h2>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <FieldLabel>{t("employerFullName")}</FieldLabel>
+            <input
+              className="ham-employer__input"
+              value={employerFullName}
+              onChange={(e) => setEmployerFullName(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <FieldLabel>{t("orgFieldName")}</FieldLabel>
+            <input
+              className="ham-employer__input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <FieldLabel>{t("orgFieldDescription")}</FieldLabel>
+            <textarea
+              className="ham-employer__input ham-employer-org__textarea"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label>{t("orgName")}</Label>
-          <input
-            className="ham-employer__input"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>{t("orgDescription")}</Label>
-          <textarea
-            className="ham-employer__input min-h-20"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
+      </section>
+
+      <section className="ham-employer__card ham-employer-org__card">
+        <h2 className="ham-employer-org__card-title">{t("orgContactDetails")}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>{t("contactPhone")}</Label>
+          <div className="space-y-1.5">
+            <FieldLabel>{t("orgFieldEmail")}</FieldLabel>
+            <input
+              className="ham-employer__input"
+              type="email"
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <FieldLabel>{t("orgFieldPhone")}</FieldLabel>
             <input
               className="ham-employer__input"
               value={contactPhone}
               onChange={(e) => setContactPhone(e.target.value)}
             />
           </div>
-          <div className="space-y-2">
-            <Label>{t("contactEmail")}</Label>
-            <input
-              className="ham-employer__input"
-              value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
-            />
-          </div>
         </div>
       </section>
 
-      <section className="ham-employer__card space-y-4 p-6">
-        <h2 className="text-base font-semibold">{t("sectionLocation")}</h2>
+      <section className="ham-employer__card ham-employer-org__card">
+        <h2 className="ham-employer-org__card-title">{t("location")}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>{t("district")}</Label>
+          <div className="space-y-1.5">
+            <FieldLabel>{t("district")}</FieldLabel>
             <select
               className="ham-employer__input"
               value={districtId}
@@ -236,8 +316,8 @@ function EmployerOrganizationFields({
               ))}
             </select>
           </div>
-          <div className="space-y-2">
-            <Label>{t("city")}</Label>
+          <div className="space-y-1.5">
+            <FieldLabel>{t("city")}</FieldLabel>
             <select
               className="ham-employer__input"
               value={cityId}
@@ -254,19 +334,24 @@ function EmployerOrganizationFields({
         </div>
       </section>
 
-      {msg ? <p className="text-sm text-destructive">{msg}</p> : null}
-      {saved ? (
-        <p className="text-sm text-emerald-700">{t("saveSuccess")}</p>
+      {msg ? (
+        <p className="text-center text-sm text-destructive">{msg}</p>
       ) : null}
-      <button
-        type="button"
-        className="ham-employer__btn ham-employer__btn--primary"
-        disabled={saveMut.isPending || !name}
-        onClick={() => saveMut.mutate()}
-      >
-        {saveMut.isPending ? <span className="ham-employer__spinner" /> : null}
-        {t("saveOrg")}
-      </button>
+      {saved ? (
+        <p className="text-center text-sm text-emerald-700">{t("saveSuccess")}</p>
+      ) : null}
+
+      <div className="flex justify-center">
+        <button
+          type="button"
+          className="ham-employer__btn ham-employer__btn--lg ham-employer__btn--primary ham-employer-org__save"
+          disabled={saveMut.isPending || !name.trim()}
+          onClick={() => saveMut.mutate()}
+        >
+          {saveMut.isPending ? <span className="ham-employer__spinner" /> : null}
+          {t("orgSaveChanges")}
+        </button>
+      </div>
     </div>
   );
 }

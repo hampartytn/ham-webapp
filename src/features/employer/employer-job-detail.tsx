@@ -27,6 +27,11 @@ import {
 } from "@/lib/api/bff-client";
 import { geoDistrictsQueryOptions } from "@/lib/query/catalog";
 import { displayWorkerName, formatRelativeTime, workerInitials } from "@/features/employer/dashboard-utils";
+import { EmployerMembershipRequiredDialog } from "@/features/employer/employer-membership-required-dialog";
+import {
+  isEmployerMembershipRequiredError,
+} from "@/features/employer/employer-membership-view";
+import { useEmployerJobCreateGate } from "@/features/employer/employer-job-create-gate";
 import { cn } from "@/lib/utils";
 import type { ApplicantItem, EmployerJob } from "@/types/ham";
 
@@ -37,6 +42,8 @@ export function EmployerJobDetail({ jobId }: { jobId: string }) {
   const qc = useQueryClient();
   const [closeOpen, setCloseOpen] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [membershipOpen, setMembershipOpen] = useState(false);
+  const { gate, amountPaise } = useEmployerJobCreateGate();
 
   const jobQ = useQuery({
     queryKey: ["employer-job", jobId],
@@ -68,7 +75,13 @@ export function EmployerJobDetail({ jobId }: { jobId: string }) {
       await qc.invalidateQueries({ queryKey: ["employer-job", jobId] });
       await qc.invalidateQueries({ queryKey: ["employer-jobs"] });
     },
-    onError: (e) => setMsg(errMsg(e)),
+    onError: (e) => {
+      if (isEmployerMembershipRequiredError(e)) {
+        setMembershipOpen(true);
+        return;
+      }
+      setMsg(errMsg(e));
+    },
   });
 
   const closeMut = useMutation({
@@ -301,8 +314,14 @@ export function EmployerJobDetail({ jobId }: { jobId: string }) {
               <button
                 type="button"
                 className="ham-employer__btn ham-employer__btn--secondary w-full"
-                disabled={publishMut.isPending}
-                onClick={() => publishMut.mutate()}
+                disabled={publishMut.isPending || gate === "loading"}
+                onClick={() => {
+                  if (gate === "blocked") {
+                    setMembershipOpen(true);
+                    return;
+                  }
+                  publishMut.mutate();
+                }}
               >
                 {t("publish")}
               </button>
@@ -353,6 +372,11 @@ export function EmployerJobDetail({ jobId }: { jobId: string }) {
         </div>
       </div>
 
+      <EmployerMembershipRequiredDialog
+        open={membershipOpen}
+        onOpenChange={setMembershipOpen}
+        amountPaise={amountPaise}
+      />
       <ConfirmDialog
         open={closeOpen}
         onOpenChange={setCloseOpen}

@@ -6,7 +6,6 @@ import {
   BriefcaseBusiness,
   Building2,
   CircleHelp,
-  CreditCard,
   LayoutDashboard,
   LifeBuoy,
   LogOut,
@@ -14,6 +13,8 @@ import {
   MessageSquare,
   Search,
   Settings,
+  Shield,
+  BadgeCheck,
   Users,
   X,
 } from "lucide-react";
@@ -47,6 +48,7 @@ type NavItem = {
     | "messages"
     | "notifications"
     | "organization"
+    | "verification"
     | "membership"
     | "settings";
   icon: typeof LayoutDashboard;
@@ -63,7 +65,8 @@ const PRIMARY_NAV: NavItem[] = [
 
 const SECONDARY_NAV: NavItem[] = [
   { href: "/employer/organization", key: "organization", icon: Building2 },
-  { href: "/employer/membership", key: "membership", icon: CreditCard },
+  { href: "/employer/membership", key: "membership", icon: BadgeCheck },
+  { href: "/employer/verification", key: "verification", icon: Shield },
   { href: "/employer/settings", key: "settings", icon: Settings },
 ];
 
@@ -157,9 +160,11 @@ export function EmployerShell({ children }: { children: ReactNode }) {
           ? te("navMessages")
           : item.key === "notifications"
             ? te("notifications")
-            : item.key === "membership"
-              ? te("navMembership")
-              : item.key === "organization"
+            : item.key === "verification"
+              ? te("accountVerification")
+              : item.key === "membership"
+                ? te("navMembership")
+                : item.key === "organization"
                 ? te("orgTitle")
                 : item.key === "applicants"
                   ? te("navApplications")

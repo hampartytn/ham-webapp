@@ -80,10 +80,60 @@ export type ApplicationItem = {
 };
 
 export type MembershipStatus = {
-  status: string;
+  status: string | null;
   canJoin: boolean;
+  canPay: boolean;
   termsVersion: string;
   identityVerified: boolean;
+  membershipPaid: boolean;
+  paymentStatus: string | null;
+  plan: {
+    id: string;
+    code: string;
+    name: string;
+    amountPaise: number;
+    currency: string;
+  } | null;
+};
+
+export type MembershipInfo = {
+  termsVersion: string;
+  copyKeys: string[];
+  placeholderNotice: string;
+  withdrawEnabled: boolean;
+};
+
+export type InitiateMembershipPayment = {
+  paymentId: string;
+  status: string;
+  providerPayload: {
+    keyId: string;
+    orderId: string;
+    amountPaise: number;
+    currency: string;
+  };
+};
+
+export type ConfirmMembershipPayment = {
+  paymentId: string;
+  status: string;
+  membershipStatus: string;
+};
+
+export type EmployerMembership = {
+  status: "INACTIVE" | "ACTIVE" | string;
+  canPay: boolean;
+  profileComplete: boolean;
+  paymentStatus: string | null;
+  activatedAt: string | null;
+  verificationState: string;
+  plan: {
+    id: string;
+    code: string;
+    name: string;
+    amountPaise: number;
+    currency: string;
+  } | null;
 };
 
 export type VerificationMe = {
@@ -115,6 +165,8 @@ export type EmployerOrg = {
   cityId: string | null;
   verificationState: string;
   activationStatus: string;
+  membershipStatus?: string;
+  membershipActivatedAt?: string | null;
 };
 
 export type EmployerJob = Omit<PublicJob, "description"> & {

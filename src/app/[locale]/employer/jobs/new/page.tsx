@@ -1,5 +1,10 @@
+import { EmployerJobCreatePageGate } from "@/features/employer/employer-job-create-gate";
 import { EmployerJobForm } from "@/features/employer";
 
 export default function EmployerNewJobPage() {
-  return <EmployerJobForm mode="create" />;
+  return (
+    <EmployerJobCreatePageGate>
+      <EmployerJobForm mode="create" />
+    </EmployerJobCreatePageGate>
+  );
 }
