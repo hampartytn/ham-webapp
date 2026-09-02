@@ -9,6 +9,7 @@ import {
 import {
   ArrowLeft,
   BarChart3,
+  Briefcase,
   Check,
   CheckCircle2,
   Pause,
@@ -38,6 +39,7 @@ import {
 import { EmployerMembershipRequiredDialog } from "@/features/employer/employer-membership-required-dialog";
 import { isEmployerMembershipRequiredError } from "@/features/employer/employer-membership-view";
 import { useEmployerJobCreateGate } from "@/features/employer/employer-job-create-gate";
+import { EmployerPanelPlaceholder } from "@/features/employer/employer-jobs-placeholder";
 import {
   applicantStatusCounts,
   formatJobCompensation,
@@ -137,17 +139,19 @@ export function EmployerJobDetail({ jobId }: { jobId: string }) {
   if (jobQ.isPending && !jobQ.data) {
     return (
       <div className="ham-employer-job" aria-busy="true">
-        <div className="ham-employer__skel h-5 w-36 rounded-md" />
-        <div className="ham-employer__skel h-10 w-64 rounded-md" />
-        <div className="grid gap-3 sm:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div
-              key={i}
-              className="ham-employer__skel h-28 rounded-[var(--emp-radius-lg)]"
-            />
-          ))}
+        <div className="ham-employer-job__board">
+          <div className="ham-employer__skel h-5 w-36 rounded-md" />
+          <div className="ham-employer__skel h-10 w-64 rounded-md" />
+          <div className="ham-employer-job__metrics">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="ham-employer__skel h-28 rounded-[var(--emp-radius-lg)]"
+              />
+            ))}
+          </div>
+          <div className="ham-employer__skel h-48 rounded-[var(--emp-radius-lg)]" />
         </div>
-        <div className="ham-employer__skel h-48 rounded-[var(--emp-radius-lg)]" />
       </div>
     );
   }
@@ -158,7 +162,9 @@ export function EmployerJobDetail({ jobId }: { jobId: string }) {
           <ArrowLeft className="size-4" aria-hidden />
           {t("backToJobs")}
         </Link>
-        <ErrorState onRetry={() => void jobQ.refetch()} />
+        <div className="ham-employer__card ham-employer-jobs__placeholder-card">
+          <ErrorState onRetry={() => void jobQ.refetch()} />
+        </div>
       </div>
     );
   }
@@ -201,7 +207,7 @@ export function EmployerJobDetail({ jobId }: { jobId: string }) {
       </Link>
 
       <div className="ham-employer-job__top">
-        <div>
+        <div className="ham-employer-job__heading-wrap">
           <div className="ham-employer-job__heading">
             <h1>{job.title}</h1>
             <span className="ham-employer__pill ham-employer-job__status">
@@ -311,16 +317,21 @@ export function EmployerJobDetail({ jobId }: { jobId: string }) {
 
       <div className="ham-employer-job__grid">
         <div className="ham-employer-job__stack">
-          {jobHasText(job.description) ? (
-            <section className="ham-employer__card ham-employer-job__panel">
-              <h2>{t("jobDescription")}</h2>
+          <section className="ham-employer__card ham-employer-job__panel">
+            <h2>{t("jobDescription")}</h2>
+            {jobHasText(job.description) ? (
               <p className="ham-employer-job__body">{job.description}</p>
-            </section>
-          ) : null}
+            ) : (
+              <EmployerPanelPlaceholder
+                icon={<Briefcase className="size-5" />}
+                title={t("noJobDescription")}
+              />
+            )}
+          </section>
 
-          {job.skills.length > 0 ? (
-            <section className="ham-employer__card ham-employer-job__panel">
-              <h2>{t("requirementsTitle")}</h2>
+          <section className="ham-employer__card ham-employer-job__panel">
+            <h2>{t("requirementsTitle")}</h2>
+            {job.skills.length > 0 ? (
               <ul className="ham-employer-job__reqs">
                 {job.skills.map((skill) => (
                   <li key={skill.skillId}>
@@ -329,8 +340,13 @@ export function EmployerJobDetail({ jobId }: { jobId: string }) {
                   </li>
                 ))}
               </ul>
-            </section>
-          ) : null}
+            ) : (
+              <EmployerPanelPlaceholder
+                icon={<Check className="size-5" />}
+                title={t("noRequirements")}
+              />
+            )}
+          </section>
 
           <section className="ham-employer__card ham-employer-job__panel">
             <h2>{t("recentApplicantsTitle")}</h2>
@@ -344,9 +360,17 @@ export function EmployerJobDetail({ jobId }: { jobId: string }) {
                 ))}
               </div>
             ) : recent.length === 0 ? (
-              <p className="text-sm text-[var(--emp-muted)]">
-                {t("noApplicantsYet")}
-              </p>
+              <EmployerPanelPlaceholder
+                icon={<Users className="size-5" />}
+                title={t("noApplicantsYet")}
+              >
+                <Link
+                  href={`/employer/jobs/${jobId}/applicants`}
+                  className="ham-employer__btn ham-employer__btn--secondary ham-employer-job__view"
+                >
+                  {t("manageApplicants")}
+                </Link>
+              </EmployerPanelPlaceholder>
             ) : (
               <>
                 <div className="ham-employer-job__people">
@@ -388,22 +412,18 @@ export function EmployerJobDetail({ jobId }: { jobId: string }) {
         </div>
 
         <div className="ham-employer-job__stack">
-          {pay ? (
-            <dl className="ham-employer__card ham-employer-job__fact">
-              <dt>{t("compensationLabel")}</dt>
-              <dd>{pay}</dd>
-            </dl>
-          ) : null}
+          <dl className="ham-employer__card ham-employer-job__fact">
+            <dt>{t("compensationLabel")}</dt>
+            <dd>{pay ?? t("notSpecified")}</dd>
+          </dl>
           <dl className="ham-employer__card ham-employer-job__fact">
             <dt>{t("jobTypeFact")}</dt>
             <dd>{t(`jobType.${job.jobType}` as "jobType.FULL_TIME")}</dd>
           </dl>
-          {location ? (
-            <dl className="ham-employer__card ham-employer-job__fact">
-              <dt>{t("locationFact")}</dt>
-              <dd>{location}</dd>
-            </dl>
-          ) : null}
+          <dl className="ham-employer__card ham-employer-job__fact">
+            <dt>{t("locationFact")}</dt>
+            <dd>{location ?? t("notSpecified")}</dd>
+          </dl>
         </div>
       </div>
 

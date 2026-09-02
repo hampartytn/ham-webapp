@@ -107,3 +107,20 @@ export function orgVerificationPendingNote(
 ): boolean {
   return verificationState !== "VERIFIED";
 }
+
+export type OrgVerificationSummary = "verified" | "pending" | "rejected";
+
+export function orgVerificationSummary(
+  verificationState: string | undefined,
+): OrgVerificationSummary {
+  if (verificationState === "VERIFIED") return "verified";
+  if (verificationState === "REJECTED") return "rejected";
+  return "pending";
+}
+
+export function membershipActivatedLabel(
+  activatedAt: string | null,
+): string | null {
+  if (!activatedAt) return null;
+  return Number.isNaN(Date.parse(activatedAt)) ? null : activatedAt;
+}

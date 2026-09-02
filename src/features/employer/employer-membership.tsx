@@ -7,10 +7,11 @@ import {
   Check,
   CreditCard,
   Headphones,
+  LayoutDashboard,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { ErrorState } from "@/components/shared/error-state";
@@ -35,13 +36,15 @@ import type {
   InitiateMembershipPayment,
 } from "@/types/ham";
 
+import { EmployerPostJobButton } from "./employer-job-create-gate";
 import {
   EmployerMembershipPayError,
   employerMembershipDisplayStatus,
   formatMembershipAmount,
   isEmployerPayEnabled,
   isEmployerPayVisible,
-  orgVerificationPendingNote,
+  membershipActivatedLabel,
+  orgVerificationSummary,
 } from "./employer-membership-view";
 
 export function EmployerMembershipPanel() {
@@ -349,33 +352,64 @@ function MembershipActiveView({
   transactionId: string | null;
 }) {
   const t = useTranslations("employer");
+  const locale = useLocale();
   const plan = membership.plan;
-  const price = plan
-    ? formatPaise(plan.amountPaise)
+  const price = plan ? formatPaise(plan.amountPaise) : null;
+  const activatedAt = membershipActivatedLabel(membership.activatedAt);
+  const activatedOn = activatedAt
+    ? new Date(activatedAt).toLocaleDateString(locale, {
+        dateStyle: "medium",
+      })
     : null;
-  const showPendingNote = orgVerificationPendingNote(
-    membership.verificationState,
-  );
+  const orgSummary = orgVerificationSummary(membership.verificationState);
+  const membershipName = plan?.name?.trim() || t("membershipActiveTitle");
+  const orgStatusLabel =
+    orgSummary === "verified"
+      ? t("orgVerification.VERIFIED")
+      : orgSummary === "rejected"
+        ? t("orgVerification.REJECTED")
+        : t("orgVerificationPendingShort");
+  const orgSplitBody =
+    orgSummary === "verified"
+      ? t("orgVerificationActiveSplitVerified")
+      : orgSummary === "rejected"
+        ? t("orgVerificationActiveSplitRejected")
+        : t("orgVerificationActiveSplitBody");
 
   return (
     <div className="ham-employer-mem ham-employer-mem--active">
-      <header className="ham-employer-mem__hero ham-employer-mem__hero--row">
-        <h1 className="ham-employer-mem__title">{t("membershipActiveTitle")}</h1>
-        <span className="ham-employer-mem__verified">
-          <Check className="size-3.5" strokeWidth={3} aria-hidden />
-          {t("membershipVerifiedBadge")}
+      <header className="ham-employer-mem__success">
+        <span className="ham-employer-mem__success-mark" aria-hidden>
+          <ShieldCheck className="size-10" strokeWidth={1.75} />
         </span>
+        <span className="ham-employer-mem__success-badge">
+          <Check className="size-3.5" strokeWidth={3} aria-hidden />
+          {t("membershipActiveVerifiedBadge")}
+        </span>
+        <h1 className="ham-employer-mem__success-title">
+          {t("membershipActiveHeroTitle")}
+        </h1>
+        <p className="ham-employer-mem__success-body">
+          {t("membershipActiveHeroBody")}
+        </p>
       </header>
 
-      <p className="ham-employer-mem__banner" role="status">
-        {transactionId
-          ? t("paymentSuccessBannerWithId", { id: transactionId })
-          : t("paymentSuccessBanner")}
-      </p>
-
-      <section className="ham-employer__card ham-employer-mem__detail">
-        <span className="ham-employer-mem__active-pill">{t("membershipActivePill")}</span>
-        <dl className="ham-employer-mem__facts">
+      <section
+        className="ham-employer__card ham-employer-mem__summary"
+        aria-label={t("membershipSummaryHeading")}
+      >
+        <h2 className="ham-employer-mem__section-title">
+          {t("membershipSummaryHeading")}
+        </h2>
+        <dl className="ham-employer-mem__summary-grid">
+          <div>
+            <dt>{t("membershipNameLabel")}</dt>
+            <dd>{membershipName}</dd>
+          </div>
+          <div>
+            <dt>{t("membershipPlanLabel")}</dt>
+            <dd>{t("membershipLevelPremium")}</dd>
+          </div>
           <div>
             <dt>{t("membershipStatusLabel")}</dt>
             <dd className="ham-employer-mem__fact-active">
@@ -383,34 +417,164 @@ function MembershipActiveView({
             </dd>
           </div>
           <div>
-            <dt>{t("membershipPrice")}</dt>
+            <dt>{t("paymentStatusLabel")}</dt>
             <dd>
               {price
-                ? t("membershipPricePaid", { price })
+                ? t("membershipPaymentPaidLine", { price })
                 : t("membershipStatusActive")}
             </dd>
           </div>
           <div>
-            <dt>{t("membershipLevelLabel")}</dt>
-            <dd>{t("membershipLevelPremium")}</dd>
+            <dt>{t("membershipPaymentTypeLabel")}</dt>
+            <dd>{t("membershipOneTimePayment")}</dd>
+          </div>
+          <div>
+            <dt>{t("membershipActivationLabel")}</dt>
+            <dd>
+              {activatedOn
+                ? t("membershipActivatedOn", { date: activatedOn })
+                : t("membershipActivationSuccess")}
+            </dd>
+          </div>
+          {transactionId ? (
+            <div className="ham-employer-mem__summary-span">
+              <dt>{t("transactionIdLabel")}</dt>
+              <dd className="ham-employer-mem__mono">{transactionId}</dd>
+            </div>
+          ) : null}
+        </dl>
+      </section>
+
+      <section className="ham-employer-mem__orgnote">
+        <h2>{t("orgVerificationHeading")}</h2>
+        <p>{orgSplitBody}</p>
+        <dl className="ham-employer-mem__orgsplit">
+          <div>
+            <dt>{t("membershipVsOrgMembership")}</dt>
+            <dd className="ham-employer-mem__orgsplit-ok">
+              <Check className="size-3.5" strokeWidth={3} aria-hidden />
+              {t("membershipStatusActive")}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("membershipVsOrgVerification")}</dt>
+            <dd
+              className={
+                orgSummary === "verified"
+                  ? "ham-employer-mem__orgsplit-ok"
+                  : undefined
+              }
+            >
+              {orgSummary === "verified" ? (
+                <Check className="size-3.5" strokeWidth={3} aria-hidden />
+              ) : (
+                <span className="ham-employer-mem__orgsplit-dot" aria-hidden />
+              )}
+              {orgStatusLabel}
+            </dd>
           </div>
         </dl>
       </section>
 
-      <Link
-        href="/employer"
-        className="ham-employer__btn ham-employer__btn--lg ham-employer__btn--primary ham-employer-mem__cta"
-      >
-        {t("membershipGoToDashboard")}
-      </Link>
+      <section className="ham-employer-mem__unlock">
+        <div className="ham-employer-mem__unlock-intro">
+          <h2 className="ham-employer-mem__section-title">
+            {t("whatYouUnlocked")}
+          </h2>
+          <p className="ham-employer-mem__unlock-body">
+            {t("whatYouUnlockedBody")}
+          </p>
+        </div>
+        <div className="ham-employer-mem__unlock-grid">
+          <Link
+            href="/employer/jobs"
+            className="ham-employer__card ham-employer-mem__perk ham-employer-mem__perk--lead"
+          >
+            <span className="ham-employer-mem__perk-icon" aria-hidden>
+              <Briefcase className="size-5" />
+            </span>
+            <div>
+              <h3>{t("benefitPostingTitle")}</h3>
+              <p>{t("benefitPostingBodyActive")}</p>
+            </div>
+          </Link>
+          <article className="ham-employer__card ham-employer-mem__perk">
+            <span className="ham-employer-mem__perk-icon" aria-hidden>
+              <Sparkles className="size-5" />
+            </span>
+            <h3>{t("benefitPriorityTitle")}</h3>
+            <p>{t("benefitPriorityBodyActive")}</p>
+          </article>
+          <Link
+            href="/employer/applicants"
+            className="ham-employer__card ham-employer-mem__perk"
+          >
+            <span className="ham-employer-mem__perk-icon" aria-hidden>
+              <BarChart3 className="size-5" />
+            </span>
+            <h3>{t("benefitTrackingTitle")}</h3>
+            <p>{t("benefitTrackingBody")}</p>
+          </Link>
+          <article className="ham-employer__card ham-employer-mem__perk">
+            <span className="ham-employer-mem__perk-icon" aria-hidden>
+              <ShieldCheck className="size-5" />
+            </span>
+            <h3>{t("benefitPremiumTitle")}</h3>
+            <p>{t("benefitPremiumBodyActive")}</p>
+          </article>
+          <Link
+            href="/employer"
+            className="ham-employer__card ham-employer-mem__perk"
+          >
+            <span className="ham-employer-mem__perk-icon" aria-hidden>
+              <LayoutDashboard className="size-5" />
+            </span>
+            <h3>{t("benefitHiringToolsTitle")}</h3>
+            <p>{t("benefitHiringToolsBody")}</p>
+          </Link>
+        </div>
+      </section>
 
-      {showPendingNote ? (
-        <p className="ham-employer-mem__footnote">
-          {membership.verificationState === "REJECTED"
-            ? t("orgVerificationRejectedNote")
-            : t("orgVerificationStillPending")}
+      <section className="ham-employer-mem__access" role="status">
+        <span className="ham-employer-mem__access-icon" aria-hidden>
+          <Check className="size-5" strokeWidth={2.5} />
+        </span>
+        <div>
+          <h2>{t("membershipAccessTitle")}</h2>
+          <p>{t("membershipAccessBody")}</p>
+        </div>
+      </section>
+
+      <section className="ham-employer-mem__payconfirm">
+        <p className="ham-employer-mem__payconfirm-kicker">
+          {t("paymentSuccessfulTitle")}
         </p>
-      ) : null}
+        <p className="ham-employer-mem__payconfirm-amount">
+          {price
+            ? t("membershipPricePaidShort", { price })
+            : t("paymentSuccessfulTitle")}
+        </p>
+        <p className="ham-employer-mem__payconfirm-body">
+          {t("paymentSuccessfulBody")}
+        </p>
+        {transactionId ? (
+          <p className="ham-employer-mem__payconfirm-id">
+            {t("transactionIdLabel")}: {transactionId}
+          </p>
+        ) : null}
+      </section>
+
+      <div className="ham-employer-mem__next">
+        <Link
+          href="/employer"
+          className="ham-employer__btn ham-employer__btn--lg ham-employer__btn--primary"
+        >
+          {t("membershipGoToDashboard")}
+        </Link>
+        <EmployerPostJobButton className="ham-employer__btn ham-employer__btn--lg ham-employer__btn--secondary">
+          {t("postJob")}
+        </EmployerPostJobButton>
+      </div>
     </div>
   );
 }

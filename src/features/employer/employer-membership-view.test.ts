@@ -18,6 +18,8 @@ import {
   isEmployerPayEnabled,
   isEmployerPayVisible,
   orgVerificationPendingNote,
+  orgVerificationSummary,
+  membershipActivatedLabel,
   paymentStatusKey,
 } from "./employer-membership-view";
 
@@ -141,6 +143,14 @@ describe("price from API amount", () => {
     expect(formatPaise(5000)).toBe("₹50");
     expect(orgVerificationPendingNote("UNVERIFIED")).toBe(true);
     expect(orgVerificationPendingNote("VERIFIED")).toBe(false);
+    expect(orgVerificationSummary("VERIFIED")).toBe("verified");
+    expect(orgVerificationSummary("REJECTED")).toBe("rejected");
+    expect(orgVerificationSummary("PENDING")).toBe("pending");
+    expect(membershipActivatedLabel("2026-09-02T10:00:00.000Z")).toBe(
+      "2026-09-02T10:00:00.000Z",
+    );
+    expect(membershipActivatedLabel(null)).toBeNull();
+    expect(membershipActivatedLabel("not-a-date")).toBeNull();
   });
 
   it("does not hardcode 99 or 9900 in membership view helpers or panel", () => {

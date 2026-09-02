@@ -38,7 +38,6 @@ import {
 } from "@/components/employer/employer-badge";
 import { EmployerPageHeader } from "@/components/employer/employer-page-header";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { PaginationControls } from "@/components/shared/pagination";
 import { useBffErrorMessage } from "@/components/shared/status-badge";
@@ -56,6 +55,7 @@ import {
 import { EmployerMembershipRequiredDialog } from "@/features/employer/employer-membership-required-dialog";
 import { isEmployerMembershipRequiredError } from "@/features/employer/employer-membership-view";
 import { EmployerJobsSelect } from "@/features/employer/employer-jobs-select";
+import { EmployerPanelPlaceholder } from "@/features/employer/employer-jobs-placeholder";
 import {
   filterJobsByTitle,
   formatJobCompensation,
@@ -324,140 +324,150 @@ export function EmployerJobsList() {
 
       {showPager ? pager : null}
 
-      {listLoading ? (
-        <div
-          className="ham-employer-jobs__table-wrap"
-          aria-busy="true"
-          aria-live="polite"
-        >
-          <span className="sr-only">{t("jobsTitle")}</span>
-          <div className="ham-employer-jobs__table-skel">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="ham-employer__skel ham-employer-jobs__skel"
-              />
-            ))}
+      <div className="ham-employer-jobs__board">
+        {listLoading ? (
+          <div
+            className="ham-employer-jobs__table-wrap"
+            aria-busy="true"
+            aria-live="polite"
+          >
+            <span className="sr-only">{t("jobsTitle")}</span>
+            <div className="ham-employer-jobs__table-skel">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="ham-employer__skel ham-employer-jobs__skel"
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      ) : listQ.error ? (
-        <ErrorState onRetry={retry} />
-      ) : showEmptyAll ? (
-        <div className="ham-employer__card ham-employer-jobs__empty">
-          <EmptyState title={t("noJobsYet")} description={t("noJobsHint")} />
-          <EmployerPostJobButton className="ham-employer__btn ham-employer__btn--primary mt-4">
-            <Plus className="size-5" aria-hidden />
-            {t("postNewJobCta")}
-          </EmployerPostJobButton>
-        </div>
-      ) : showEmptyFilter ? (
-        <div className="ham-employer__card ham-employer-jobs__empty">
-          <EmptyState
-            title={t("noMatchingJobs")}
-            description={t("noMatchingJobsHint")}
-          />
-        </div>
-      ) : (
-        <div className="ham-employer-jobs__table-wrap">
-          <table className="ham-employer-jobs__table">
-            <thead>
-              <tr>
-                <th scope="col">{t("colJobDetails")}</th>
-                <th scope="col">{t("colHiringProgress")}</th>
-                <th scope="col">{t("statusLabel")}</th>
-                <th scope="col">
-                  <span className="sr-only">{t("actions")}</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((job, index) => {
-                const apps = appsByJob.get(job.id);
-                const appsPending =
-                  appQueries[index]?.isPending && !appQueries[index]?.data;
-                const location = districtName.get(job.districtId) ?? null;
-                const typeLabel = t(
-                  `jobType.${job.jobType}` as "jobType.FULL_TIME",
-                );
-                const pay = formatJobCompensation(
-                  job.wageMinPaise,
-                  job.wageMaxPaise,
-                  periodLabel(job.wagePeriod),
-                );
-                const menuOpen = openMenuId === job.id;
-                const openJob = () => router.push(`/employer/jobs/${job.id}`);
-                return (
-                  <tr
-                    key={job.id}
-                    className={`ham-employer-jobs__row${menuOpen ? " is-menu-open" : ""}`}
-                    tabIndex={0}
-                    onClick={openJob}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        openJob();
-                      }
-                    }}
-                  >
-                    <td>
-                      <div className="ham-employer-jobs__card-main">
-                        <p className="ham-employer-jobs__card-title">
-                          {job.title}
-                        </p>
-                        <p className="ham-employer-jobs__card-meta">
-                          {jobLocationLine(location, typeLabel)}
-                        </p>
-                        {pay ? (
-                          <p className="ham-employer-jobs__card-pay">{pay}</p>
-                        ) : null}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="ham-employer-jobs__card-apps">
-                        {appsPending ? (
-                          <span className="ham-employer__skel block h-4 w-36 rounded-md" />
-                        ) : (
-                          <p>
-                            {t("applicantsWithNew", {
-                              count: apps?.total ?? 0,
-                              newCount: apps?.submitted ?? 0,
-                            })}
-                          </p>
-                        )}
-                        <div className="ham-employer-jobs__bar" aria-hidden>
-                          <span
-                            style={{
-                              width: `${newApplicantSharePercent(apps?.submitted ?? 0, apps?.total ?? 0)}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <EmployerBadge tone={jobBadgeTone(job.status)} dot>
-                        {statusLabel(job.status)}
-                      </EmployerBadge>
-                    </td>
-                    <td
-                      className="ham-employer-jobs__actions-cell"
-                      onClick={(event) => event.stopPropagation()}
-                      onKeyDown={(event) => event.stopPropagation()}
-                    >
-                      <JobRowMenu
-                        job={job}
-                        open={menuOpen}
-                        onOpenChange={(next) =>
-                          setOpenMenuId(next ? job.id : null)
+        ) : listQ.error ? (
+          <div className="ham-employer__card ham-employer-jobs__placeholder-card">
+            <ErrorState onRetry={retry} />
+          </div>
+        ) : showEmptyAll ? (
+          <div className="ham-employer__card ham-employer-jobs__placeholder-card">
+            <EmployerPanelPlaceholder
+              icon={<Briefcase className="size-6" />}
+              title={t("noJobsYet")}
+              description={t("noJobsHint")}
+            >
+              <EmployerPostJobButton className="ham-employer__btn ham-employer__btn--primary">
+                <Plus className="size-5" aria-hidden />
+                {t("postNewJobCta")}
+              </EmployerPostJobButton>
+            </EmployerPanelPlaceholder>
+          </div>
+        ) : showEmptyFilter ? (
+          <div className="ham-employer__card ham-employer-jobs__placeholder-card">
+            <EmployerPanelPlaceholder
+              icon={<Search className="size-6" />}
+              title={t("noMatchingJobs")}
+              description={t("noMatchingJobsHint")}
+            />
+          </div>
+        ) : (
+          <div className="ham-employer-jobs__table-wrap">
+            <table className="ham-employer-jobs__table">
+              <thead>
+                <tr>
+                  <th scope="col">{t("colJobDetails")}</th>
+                  <th scope="col">{t("colHiringProgress")}</th>
+                  <th scope="col">{t("statusLabel")}</th>
+                  <th scope="col">
+                    <span className="sr-only">{t("actions")}</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((job, index) => {
+                  const apps = appsByJob.get(job.id);
+                  const appsPending =
+                    appQueries[index]?.isPending && !appQueries[index]?.data;
+                  const location = districtName.get(job.districtId) ?? null;
+                  const typeLabel = t(
+                    `jobType.${job.jobType}` as "jobType.FULL_TIME",
+                  );
+                  const pay = formatJobCompensation(
+                    job.wageMinPaise,
+                    job.wageMaxPaise,
+                    periodLabel(job.wagePeriod),
+                  );
+                  const menuOpen = openMenuId === job.id;
+                  const openJob = () => router.push(`/employer/jobs/${job.id}`);
+                  return (
+                    <tr
+                      key={job.id}
+                      className={`ham-employer-jobs__row${menuOpen ? " is-menu-open" : ""}`}
+                      tabIndex={0}
+                      onClick={openJob}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openJob();
                         }
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                      }}
+                    >
+                      <td>
+                        <div className="ham-employer-jobs__card-main">
+                          <p className="ham-employer-jobs__card-title">
+                            {job.title}
+                          </p>
+                          <p className="ham-employer-jobs__card-meta">
+                            {jobLocationLine(location, typeLabel)}
+                          </p>
+                          {pay ? (
+                            <p className="ham-employer-jobs__card-pay">{pay}</p>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="ham-employer-jobs__card-apps">
+                          {appsPending ? (
+                            <span className="ham-employer__skel block h-4 w-36 rounded-md" />
+                          ) : (
+                            <p>
+                              {t("applicantsWithNew", {
+                                count: apps?.total ?? 0,
+                                newCount: apps?.submitted ?? 0,
+                              })}
+                            </p>
+                          )}
+                          <div className="ham-employer-jobs__bar" aria-hidden>
+                            <span
+                              style={{
+                                width: `${newApplicantSharePercent(apps?.submitted ?? 0, apps?.total ?? 0)}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <EmployerBadge tone={jobBadgeTone(job.status)} dot>
+                          {statusLabel(job.status)}
+                        </EmployerBadge>
+                      </td>
+                      <td
+                        className="ham-employer-jobs__actions-cell"
+                        onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
+                      >
+                        <JobRowMenu
+                          job={job}
+                          open={menuOpen}
+                          onOpenChange={(next) =>
+                            setOpenMenuId(next ? job.id : null)
+                          }
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {showPager ? pager : null}
     </div>
